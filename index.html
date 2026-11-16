@@ -693,10 +693,12 @@ function gauge(v,label,col){const r=80,L=Math.PI*r;const f=v==null?0:v/100;
 function le8(){const L=k=>{const g=S.labs.filter(x=>x.k===k).sort((a,b)=>a.d<b.d?-1:1);return g.length?g[g.length-1]:null};
  const today=new Date();today.setHours(12);const rows=[];
  // atividade: 7 dias equivalentes
- let am=0,any=false;const d=new Date(today);d.setDate(d.getDate()-1);for(let i=0;i<7;i++){const D=S.days[key(d)];if(D){any=true;am+=D.aer.m+2*D.aer.v}d.setDate(d.getDate()-1)}
- rows.push(['🏃 Atividade física',any?am+' min/sem':null,any?(am>=150?100:am>=120?90:am>=90?80:am>=60?60:am>=30?40:am>=1?20:0):null]);
- const du=[];const e=new Date(today);e.setDate(e.getDate()-1);for(let i=0;i<7;i++){const D=S.days[key(e)];const v=D?sleepDur(norm(D)):null;if(v!=null)du.push(v/60);e.setDate(e.getDate()-1)}
- const sh=du.length?du.reduce((a,b)=>a+b,0)/du.length:null;rows.push(['😴 Sono',sh!=null?fmt(sh*60)+' (média)':null,sleepPts(sh)]);
+ let am=0,any=false;const d=new Date(today);for(let i=0;i<7;i++){const D=S.days[key(d)];if(D&&(D.aer.m+D.aer.v)>0){any=true;am+=D.aer.m+2*D.aer.v}d.setDate(d.getDate()-1)}
+ const wx=L('Exercício semanal (relógio)');const wxOk=wx&&(today-new Date(wx.d))/864e5<=8;
+ let src=any?'registos de 7 dias':null;if(wxOk&&wx.v>am){am=wx.v;src='relógio';any=true}
+ rows.push(['🏃 Atividade física',any?am+' min/sem · '+src:null,any?(am>=150?100:am>=120?90:am>=90?80:am>=60?60:am>=30?40:am>=1?20:0):null]);
+ const du=[];const e=new Date(today);for(let i=0;i<7;i++){const D=S.days[key(e)];const v=D?sleepDur(norm(D)):null;if(v!=null)du.push(v/60);e.setDate(e.getDate()-1)}
+ const sh=du.length?du.reduce((a,b)=>a+b,0)/du.length:null;rows.push(['😴 Sono',sh!=null?fmt(sh*60)+` (média de ${du.length} noite${du.length>1?'s':''})`:null,sleepPts(sh)]);
  rows.push(['🚭 Nicotina',['Fumador','Ex <1 ano','Ex 1–5 anos','Ex ≥5 anos','Nunca'][[0,25,50,75,100].indexOf(S.settings.nic??100)],S.settings.nic??100]);
  const bw=[...S.body].filter(x=>x.w).sort((a,b)=>a.d<b.d?-1:1).pop();const w=bw?bw.w:S.settings.w;const bmi=w/((S.settings.h/100)**2);
  rows.push(['⚖️ IMC',bmi.toFixed(1),bmi<25?100:bmi<30?70:bmi<35?30:bmi<40?15:0]);
@@ -810,7 +812,7 @@ function insights(today){const out=[];const avg=a=>a.reduce((s,v)=>s+v,0)/a.leng
 $('heat').addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;const[y,m,d]=k.split('-').map(Number);view=new Date(y,m-1,d,12);lastPct=null;tab('hoje')});
 
 /* ---------- corpo ---------- */
-const LABS=[['HbA1c','%'],['Glicemia em jejum','mg/dL'],['ApoB','mg/dL'],['Colesterol total','mg/dL'],['LDL-c','mg/dL'],['HDL-c','mg/dL'],['Triglicerídeos','mg/dL'],['Lp(a)','nmol/L'],['PCR-as','mg/L'],['Cistatina C','mg/L'],['Creatinina','mg/dL'],['25-OH vitamina D','ng/mL'],['Ferritina','ng/mL'],['TSH','mUI/L'],['PA sistólica','mmHg'],['PA diastólica','mmHg'],['FC em repouso','bpm'],['VO₂max (relógio)','mL/kg/min'],['Força de preensão','kg']];
+const LABS=[['HbA1c','%'],['Glicemia em jejum','mg/dL'],['ApoB','mg/dL'],['Colesterol total','mg/dL'],['LDL-c','mg/dL'],['HDL-c','mg/dL'],['Triglicerídeos','mg/dL'],['Lp(a)','nmol/L'],['PCR-as','mg/L'],['Cistatina C','mg/L'],['Creatinina','mg/dL'],['25-OH vitamina D','ng/mL'],['Ferritina','ng/mL'],['TSH','mUI/L'],['PA sistólica','mmHg'],['PA diastólica','mmHg'],['FC em repouso','bpm'],['VO₂max (relógio)','mL/kg/min'],['Exercício semanal (relógio)','min/sem'],['Força de preensão','kg']];
 const LU=Object.fromEntries(LABS);
 const dstr=k=>k.split('-').reverse().join('/');
 function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=26;
@@ -823,8 +825,8 @@ function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=
 function renderCorpo(){
  {const r=le8();const[lab,col]=r.score==null?['Sem dados','var(--mut)']:r.score>=80?['Alto',"var(--green)"]:r.score>=50?['Moderado','var(--orange)']:['Baixo','var(--red)'];
   $('le8g').innerHTML=gauge(r.score,`${lab} · ${r.n}/8 métricas`,col);
-  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'não medido':'sem dados — regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
- if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
+  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'não medido (requer questionário MEPA)':n.includes('Atividade')?'regista minutos de aeróbio no Hoje, ou o total semanal do relógio em Análises':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
+ if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['⌚','Exercício semanal (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
  if(!$('lK').options.length)$('lK').innerHTML=LABS.map(([k,u])=>`<option value="${k}">${k} (${u})</option>`).join('');
  const t=key(new Date());if(!$('bD').value)$('bD').value=t;if(!$('lD').value)$('lD').value=t;
  const b=[...S.body].sort((x,y)=>x.d<y.d?-1:1);
