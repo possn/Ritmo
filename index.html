@@ -246,15 +246,16 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
   <div class="card"><div class="ct">Saúde cardiovascular · LE8</div>
     <div class="gauge" id="le8g"></div>
     <div class="mt" style="margin:4px 0 6px;background:var(--fill);border-radius:14px;padding:10px 12px">
-      <span style="font-size:14px;font-weight:600;flex:1 1 100%">⌚ Minutos de exercício desta semana</span>
-      <span class="note" style="flex:1 1 100%">App Fitness do iPhone → anel verde "Exercício" → total da semana (inclui caminhada rápida).</span>
-      <input type="number" id="wxMin" inputmode="numeric" min="0" step="5" placeholder="min" style="width:110px">
+      <span style="font-size:14px;font-weight:600;flex:1 1 100%">⌚ Atividade da semana (relógio)</span>
+      <span class="note" style="flex:1 1 100%">Amazfit: app Zepp → cartão <b>PAI</b> (valor dos últimos 7 dias). Outros relógios: minutos de exercício/intensidade da semana.</span>
+      <select id="wxUnit" style="min-width:0;width:auto"><option value="pai">PAI</option><option value="min">minutos</option></select>
+      <input type="number" id="wxMin" inputmode="numeric" min="0" step="1" placeholder="valor" style="width:96px">
       <button class="btn" id="wxSave" style="padding:9px 14px">Guardar</button>
     </div>
     <table id="le8t"></table>
     <button class="info" id="le8InfoB">ⓘ Sobre o LE8</button>
     <div class="more" id="le8Info">Life's Essential 8 (American Heart Association): 8 métricas de 0 a 100; o score é a média. ≥80 alto, 50–79 moderado, &lt;50 baixo. Scores mais altos associam-se a menor incidência de doença cardiovascular e maior esperança de vida em coortes.<br><br>
-    Aqui a atividade física e o sono vêm dos teus registos de 7 dias; IMC, PA, glicemia e lípidos vêm do Corpo (lípidos = colesterol não-HDL = total − HDL). A dieta vem do questionário MEPA (cartão abaixo). Se faltar alguma métrica, o score usa só as disponíveis. Não estão aplicadas as penalizações por medicação (−20 na PA, nos lípidos ou na glicemia se estiveres medicado).
+    Aqui a atividade física vem dos teus registos de aeróbio ou do relógio — com Amazfit, o PAI é convertido aproximadamente (PAI 100 ≈ 150 min/semana; esta conversão não faz parte do LE8: o PAI ≥100 associou-se a ~17–23% menor mortalidade cardiovascular no estudo HUNT, Nes BM et al. Am J Med 2017;130:328–36); o sono vem dos teus registos de 7 dias; IMC, PA, glicemia e lípidos vêm do Corpo (lípidos = colesterol não-HDL = total − HDL). A dieta vem do questionário MEPA (cartão abaixo). Se faltar alguma métrica, o score usa só as disponíveis. Não estão aplicadas as penalizações por medicação (−20 na PA, nos lípidos ou na glicemia se estiveres medicado).
     <div class="ref">Lloyd-Jones DM et al. Circulation 2022;146:e18–e43.</div></div>
   </div>
   <div class="card"><div class="ct">Dieta · questionário MEPA</div>
@@ -749,7 +750,8 @@ function le8(){const L=k=>{const g=S.labs.filter(x=>x.k===k).sort((a,b)=>a.d<b.d
  let am=0,any=false;const d=new Date(today);for(let i=0;i<7;i++){const D=S.days[key(d)];if(D&&(D.aer.m+D.aer.v)>0){any=true;am+=D.aer.m+2*D.aer.v}d.setDate(d.getDate()-1)}
  const wx=L('Exercício semanal (relógio)');const wxOk=wx&&(today-new Date(wx.d))/864e5<=8;
  let src=any?'registos de 7 dias':null;if(wxOk&&wx.v>am){am=wx.v;src='relógio';any=true}
- rows.push(['🏃 Atividade física',any?am+' min/sem · '+src:null,any?(am>=150?100:am>=120?90:am>=90?80:am>=60?60:am>=30?40:am>=1?20:0):null]);
+ const pai=L('PAI (Amazfit)');if(pai&&(today-new Date(pai.d))/864e5<=8){const eq=Math.round(pai.v*1.5);if(eq>am){am=eq;src=`PAI ${pai.v} ≈ ${eq} min (aprox.)`;any=true}}
+ rows.push(['🏃 Atividade física',any?(src.startsWith('PAI')?src:am+' min/sem · '+src):null,any?(am>=150?100:am>=120?90:am>=90?80:am>=60?60:am>=30?40:am>=1?20:0):null]);
  const du=[];const e=new Date(today);for(let i=0;i<7;i++){const D=S.days[key(e)];const v=D?sleepDur(norm(D)):null;if(v!=null)du.push(v/60);e.setDate(e.getDate()-1)}
  const sh=du.length?du.reduce((a,b)=>a+b,0)/du.length:null;rows.push(['😴 Sono',sh!=null?fmt(sh*60)+` (média de ${du.length} noite${du.length>1?'s':''})`:null,sleepPts(sh)]);
  rows.push(['🚭 Nicotina',['Fumador','Ex <1 ano','Ex 1–5 anos','Ex ≥5 anos','Nunca'][[0,25,50,75,100].indexOf(S.settings.nic??100)],S.settings.nic??100]);
@@ -904,12 +906,13 @@ $('mepaOpen').onclick=()=>{const last=S.mepa.length?S.mepa[S.mepa.length-1]:null
 $('mepaQ').addEventListener('click',e=>{const i=e.target.dataset.mq;if(i==null)return;mepaDraft[+i]=!mepaDraft[+i];renderMepa()});
 $('mepaSave').onclick=()=>{const n=mepaDraft.filter(Boolean).length;const d=key(new Date());S.mepa=S.mepa.filter(x=>x.d!==d);S.mepa.push({d,a:mepaDraft,n});save();
  mepaDraft=null;$('mepaForm').style.display='none';$('mepaOpen').style.display='';$('mepaOpen').textContent='Responder de novo';renderCorpo();toast(`🥗 MEPA ${n}/16 · ${mepaPts(n)} pontos`)};
-$('wxSave').onclick=()=>{const v=parseInt($('wxMin').value);if(isNaN(v)){toast('Indica os minutos');return}const d=key(new Date());
- S.labs=S.labs.filter(x=>!(x.k==='Exercício semanal (relógio)'&&x.d===d));S.labs.push({k:'Exercício semanal (relógio)',v,d});save();renderCorpo();toast('⌚ '+v+' min/semana guardados')};
+$('wxSave').onclick=()=>{const v=parseInt($('wxMin').value);if(isNaN(v)){toast('Indica o valor');return}const d=key(new Date());const u=$('wxUnit').value;S.settings.wxUnit=u;
+ const k=u==='pai'?'PAI (Amazfit)':'Exercício semanal (relógio)';
+ S.labs=S.labs.filter(x=>!(x.k===k&&x.d===d));S.labs.push({k,v,d});save();renderCorpo();toast(u==='pai'?'⌚ PAI '+v+' guardado':'⌚ '+v+' min/semana guardados')};
 $('mepaInfoB').onclick=()=>$('mepaInfo').classList.toggle('open');
 
 /* ---------- corpo ---------- */
-const LABS=[['HbA1c','%'],['Glicemia em jejum','mg/dL'],['ApoB','mg/dL'],['Colesterol total','mg/dL'],['LDL-c','mg/dL'],['HDL-c','mg/dL'],['Triglicerídeos','mg/dL'],['Lp(a)','nmol/L'],['PCR-as','mg/L'],['Cistatina C','mg/L'],['Creatinina','mg/dL'],['25-OH vitamina D','ng/mL'],['Ferritina','ng/mL'],['TSH','mUI/L'],['PA sistólica','mmHg'],['PA diastólica','mmHg'],['FC em repouso','bpm'],['VO₂max (relógio)','mL/kg/min'],['Exercício semanal (relógio)','min/sem'],['Força de preensão','kg']];
+const LABS=[['HbA1c','%'],['Glicemia em jejum','mg/dL'],['ApoB','mg/dL'],['Colesterol total','mg/dL'],['LDL-c','mg/dL'],['HDL-c','mg/dL'],['Triglicerídeos','mg/dL'],['Lp(a)','nmol/L'],['PCR-as','mg/L'],['Cistatina C','mg/L'],['Creatinina','mg/dL'],['25-OH vitamina D','ng/mL'],['Ferritina','ng/mL'],['TSH','mUI/L'],['PA sistólica','mmHg'],['PA diastólica','mmHg'],['FC em repouso','bpm'],['VO₂max (relógio)','mL/kg/min'],['Exercício semanal (relógio)','min/sem'],['PAI (Amazfit)','pontos/7 dias'],['Força de preensão','kg']];
 const LU=Object.fromEntries(LABS);
 const dstr=k=>k.split('-').reverse().join('/');
 function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=26;
@@ -920,11 +923,11 @@ function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=
  <text x="2" y="${Y(y1)+4}" font-size="10" fill="var(--mut)">${y1}</text><text x="2" y="${Y(y0)+4}" font-size="10" fill="var(--mut)">${y0}</text>
  <text x="${P}" y="${H-1}" font-size="10" fill="var(--mut)">${dstr(pts[0].d).slice(0,5)}</text><text x="${W-8}" y="${H-1}" font-size="10" fill="var(--mut)" text-anchor="end">${dstr(pts[pts.length-1].d).slice(0,5)}</text><text x="${W-8}" y="12" font-size="10" fill="var(--mut)" text-anchor="end">${unit}</text></svg>`}
 function renderCorpo(){
- {const g=S.labs.filter(x=>x.k==='Exercício semanal (relógio)').sort((a,b)=>a.d<b.d?-1:1).pop();$('wxMin').value=g&&(Date.now()-new Date(g.d))/864e5<=8?g.v:''}
+ {const u=S.settings.wxUnit||'pai';$('wxUnit').value=u;const g=S.labs.filter(x=>x.k===(u==='pai'?'PAI (Amazfit)':'Exercício semanal (relógio)')).sort((a,b)=>a.d<b.d?-1:1).pop();$('wxMin').value=g&&(Date.now()-new Date(g.d))/864e5<=8?g.v:''}
  renderMepa();if(S.mepa.length)$('mepaOpen').textContent='Responder de novo';
  {const r=le8();const[lab,col]=r.score==null?['Sem dados','var(--mut)']:r.score>=80?['Alto',"var(--green)"]:r.score>=50?['Moderado','var(--orange)']:['Baixo','var(--red)'];
   $('le8g').innerHTML=gauge(r.score,`${lab} · ${r.n}/8 métricas`,col);
-  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'responde ao questionário MEPA (abaixo)':n.includes('Atividade')?'escreve os minutos do relógio no campo acima':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
+  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'responde ao questionário MEPA (abaixo)':n.includes('Atividade')?'escreve o PAI do relógio no campo acima':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
  if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['⌚','Exercício semanal (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
  if(!$('lK').options.length)$('lK').innerHTML=LABS.map(([k,u])=>`<option value="${k}">${k} (${u})</option>`).join('');
  const t=key(new Date());if(!$('bD').value)$('bD').value=t;if(!$('lD').value)$('lD').value=t;
