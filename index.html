@@ -170,6 +170,13 @@ select{width:auto;min-width:150px}
 textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);border:none;border-radius:12px;padding:10px;font:15px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;resize:vertical}
 .foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.gauge{display:flex;flex-direction:column;align-items:center;margin:4px 0 6px}
+.gauge svg{width:230px;height:auto}
+.gauge .lab{font-family:var(--serif);font-size:17px;font-weight:600;margin-top:-6px}
+.dom{display:grid;grid-template-columns:118px 1fr 40px;gap:8px;align-items:center;font-size:14px;padding:5px 0}
+.dom .b{height:8px;background:var(--fill);border-radius:8px;overflow:hidden}.dom .b i{display:block;height:100%;border-radius:8px}
+.dom span:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.idx-mini{font-size:13px;color:var(--tx2);margin-top:2px}.idx-mini b{font-family:var(--serif);font-size:18px}
 </style>
 </head>
 <body>
@@ -188,6 +195,7 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
       <div><div class="k">Protocolo</div><div class="v" style="color:var(--ring1)" id="r1v">0<small>/0</small></div></div>
       <div><div class="k">Proteína</div><div class="v" style="color:var(--ring2)" id="r2v">0<small>/96 g</small></div></div>
       <div><div class="k">Movimento</div><div class="v" style="color:var(--ring3)" id="r3v">0<small>%</small></div></div>
+      <div class="idx-mini" id="idxMini"></div>
     </div>
   </div>
 
@@ -203,6 +211,18 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
 
 <section id="s-hist">
   <div class="top"><div><div class="eyebrow">Progresso</div><h1>Histórico</h1></div></div>
+  <div class="card"><div class="ct">Índice Ritmo</div>
+    <div class="gauge" id="gauge"></div>
+    <div id="doms"></div>
+    <div id="idxTrend"></div>
+    <button class="info" id="idxInfoB">ⓘ Como é calculado</button>
+    <div class="more" id="idxInfo">Mede a <b>adesão</b> dos últimos 7 dias completos (sem contar hoje nem os dias livres), com pesos proporcionais à força da evidência de cada hábito:<br>
+    <b>Atividade 30</b> (aeróbio 15 · passos 7 · força 8) · <b>Nutrição 25</b> (proteína 10 · fruta 5 · frutos secos 5 · refeições 5) · <b>Sono 20</b> (duração 12 · regularidade 8) · <b>Sedentarismo 10</b> · <b>Ritmo circadiano 10</b> (luz 5 · fecho da janela 5) · <b>Suplementos 5</b> (creatina 3 · matcha 2).<br><br>
+    O que não registas conta como não feito. Se desligares um item, o peso dele é redistribuído pelos restantes.<br><br>
+    <b>Não é um preditor validado de esperança de vida.</b> Serve para te dizer se estás a cumprir. Como referência populacional, adultos com 5 fatores de baixo risco (não fumar, IMC 18,5–24,9, ≥30 min/dia de atividade, álcool moderado, dieta de qualidade) tiveram ~12–14 anos a mais de esperança de vida aos 50 anos, face a quem não tinha nenhum — associação de coorte, não efeito individual.
+    <div class="ref">Li Y et al. Circulation 2018;138:345–55.</div>
+    Para um score validado, vê o <b>LE8</b> no separador Corpo.</div>
+  </div>
   <div class="stats" style="margin-bottom:14px">
     <div class="stat"><b id="stStreak" style="color:var(--orange)">0</b><span>🔥 dias seguidos</span></div>
     <div class="stat"><b id="stAvg" style="color:var(--ring1)">0%</b><span>média 7 dias</span></div>
@@ -218,6 +238,14 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
 
 <section id="s-corpo">
   <div class="top"><div><div class="eyebrow">Composição e análises</div><h1>Corpo</h1></div></div>
+  <div class="card"><div class="ct">Saúde cardiovascular · LE8</div>
+    <div class="gauge" id="le8g"></div>
+    <table id="le8t"></table>
+    <button class="info" id="le8InfoB">ⓘ Sobre o LE8</button>
+    <div class="more" id="le8Info">Life's Essential 8 (American Heart Association): 8 métricas de 0 a 100; o score é a média. ≥80 alto, 50–79 moderado, &lt;50 baixo. Scores mais altos associam-se a menor incidência de doença cardiovascular e maior esperança de vida em coortes.<br><br>
+    Aqui a atividade física e o sono vêm dos teus registos de 7 dias; IMC, PA, glicemia e lípidos vêm do Corpo (lípidos = colesterol não-HDL = total − HDL). A dieta exige o questionário MEPA, que não está implementado — o score usa só as métricas disponíveis. Não estão aplicadas as penalizações por medicação (−20 na PA, nos lípidos ou na glicemia se estiveres medicado).
+    <div class="ref">Lloyd-Jones DM et al. Circulation 2022;146:e18–e43.</div></div>
+  </div>
   <div class="card"><div class="ct">Peso e cintura</div>
     <div class="inl"><label>Data<input type="date" id="bD"></label><label>Peso (kg)<input type="number" id="bW" step="0.1" inputmode="decimal"></label><label>Cintura (cm)<input type="number" id="bC" step="0.5" inputmode="decimal"></label></div>
     <button class="btn" id="bSave" style="margin-top:12px">Guardar medição</button>
@@ -259,6 +287,7 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
   <div class="card">
     <div class="frow">Altura (cm)<input type="number" id="cH" min="120" max="220"></div>
     <div class="frow">Peso (kg)<input type="number" id="cW" min="30" max="200" step="0.5"></div>
+    <div class="frow">Tabaco<select id="cNic"><option value="100">Nunca fumei</option><option value="75">Ex-fumador ≥5 anos</option><option value="50">Ex-fumador 1–5 anos</option><option value="25">Ex-fumador &lt;1 ano</option><option value="0">Fumador</option></select></div>
     <div class="note" id="protNote" style="padding-top:8px"></div>
   </div>
   <div class="card">
@@ -394,7 +423,7 @@ const DAYN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 /* ---------- estado ---------- */
 const KEY='ritmo.v1';
-const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16,hidden:[]},days:{},body:[],labs:[],custom:[]};
+const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16,hidden:[],nic:100},days:{},body:[],labs:[],custom:[]};
 function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j:0};D.pf=D.pf||{a:[],j:[]};D.aer=D.aer||{m:0,v:0};D.sl=D.sl||{bed:'',wake:''};D.steps=D.steps||0;D.meal=D.meal||{first:'',last:''};D.note=D.note||'';D.off=!!D.off;return D}
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
@@ -475,6 +504,7 @@ function render(){
  $('r1v').innerHTML=`${sc.n}<small>/${sc.t}</small>`;
  $('r2v').innerHTML=`${pg}<small>/${protT()} g</small>`;
  $('r3v').innerHTML=`${Math.round(mv*100)}<small>%</small>`;
+ {const yd=new Date();yd.setDate(yd.getDate()-1);const ix=idxAt(yd);$('idxMini').innerHTML=ix?`Índice Ritmo <b>${ix.score}</b>`:''}
  if(isToday()&&!D.off&&lastPct!==null&&lastPct<1&&sc.p>=1)celebrate();
  lastPct=isToday()?sc.p:null;
  fasting();
@@ -605,7 +635,71 @@ $('prevD').onclick=()=>{view.setDate(view.getDate()-1);lastPct=null;render()};
 $('nextD').onclick=()=>{if(isToday())return;view.setDate(view.getDate()+1);render()};
 
 /* ---------- histórico ---------- */
+/* ---------- índice e LE8 ---------- */
+const sleepPts=h=>h==null?null:h>=7&&h<9?100:h>=9&&h<10?90:h>=6&&h<7?70:(h>=5&&h<6)||h>=10?40:h>=4&&h<5?20:0;
+function idxAt(end){
+ const ds=[];const d=new Date(end);d.setHours(12,0,0,0);
+ for(let i=0;i<7;i++){const D=S.days[key(d)];if(!(D&&D.off))ds.push({d:new Date(d),D:D?norm(D):null});d.setDate(d.getDate()-1)}
+ if(!ds.length||!ds.some(x=>x.D))return null;
+ const hid=S.settings.hidden||[];const avg=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;const cl=v=>Math.max(0,Math.min(1,v));
+ const IT=id=>ITEMS.find(i=>i.id===id);
+ const ratio=id=>{const it=IT(id);const ap=ds.filter(x=>applies(it,x.d));return ap.length?ap.filter(x=>x.D&&done(it,x.D)).length/ap.length:0};
+ const C=[];const add=(dom,id,w,v)=>{if(!hid.includes(id))C.push({dom,w,v:cl(v)})};
+ const scale=7/ds.length;
+ add('Atividade','aer',15,ds.reduce((s,x)=>s+(x.D?x.D.aer.m+2*x.D.aer.v:0),0)*scale/150);
+ add('Atividade','passos',7,avg(ds.map(x=>x.D?Math.min(1,x.D.steps/S.settings.stepGoal):0)));
+ {const ap=ds.filter(x=>S.settings.gtgDays.includes(x.d.getDay()));add('Atividade','gtg',8,ap.length?ap.filter(x=>x.D&&x.D.gtg.length>=S.settings.gtgSets/2).length/ap.length:0)}
+ add('Sono','sono',12,avg(ds.map(x=>{const v=x.D?sleepDur(x.D):null;return v==null?0:sleepPts(v/60)/100})));
+ {const mids=ds.map(x=>x.D?sleepMid(x.D):null).filter(v=>v!=null).map(v=>(v-720+1440)%1440);let r=0;
+  if(mids.length>=3){const m=avg(mids);const sd=Math.sqrt(mids.reduce((s,v)=>s+(v-m)**2,0)/(mids.length-1));r=(90-sd)/60*(mids.length/ds.length)}add('Sono','sono',8,r)}
+ add('Nutrição','almoco',10,avg(ds.map(x=>x.D?Math.min(1,protDay(x.D)/protT()):0)));
+ add('Nutrição','fruta',5,ratio('fruta'));add('Nutrição','nozes',5,ratio('nozes'));
+ add('Nutrição','jantar',5,(ratio('almoco')+ratio('jantar'))/2);
+ add('Ritmo circadiano','luz',5,ratio('luz'));add('Ritmo circadiano','fecho',5,ratio('fecho'));
+ add('Sedentarismo','agach',10,avg(ds.map(x=>x.D?Math.min(1,x.D.sq.length/Math.max(1,workHours().length*0.8)):0)));
+ add('Suplementos','creat',3,ratio('creat'));add('Suplementos','matcha',2,ratio('matcha'));
+ const W=C.reduce((s,c)=>s+c.w,0);if(!W)return null;
+ const doms={};C.forEach(c=>{(doms[c.dom]=doms[c.dom]||{w:0,s:0});doms[c.dom].w+=c.w;doms[c.dom].s+=c.w*c.v});
+ return{score:Math.round(C.reduce((s,c)=>s+c.w*c.v,0)/W*100),doms}}
+const tier=v=>v>=80?['Excelente','var(--green)']:v>=60?['Bom','var(--teal)']:v>=40?['Em construção','var(--orange)']:['A começar','var(--red)'];
+function gauge(v,label,col){const r=80,L=Math.PI*r;const f=v==null?0:v/100;
+ return `<svg viewBox="0 0 200 118" role="img" aria-label="${label} ${v??'sem dados'}"><path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--fill2)" stroke-width="14" stroke-linecap="round"/>
+ <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="${col}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${L*f} ${L}" ${f===0?'opacity="0"':''}/>
+ <text x="100" y="92" text-anchor="middle" font-family="ui-serif,'New York',Georgia,serif" font-size="46" font-weight="600" fill="var(--tx)">${v??'—'}</text>
+ <text x="100" y="112" text-anchor="middle" font-size="11" fill="var(--mut)">de 100</text></svg><div class="lab" style="color:${col}">${label}</div>`}
+function le8(){const L=k=>{const g=S.labs.filter(x=>x.k===k).sort((a,b)=>a.d<b.d?-1:1);return g.length?g[g.length-1]:null};
+ const today=new Date();today.setHours(12);const rows=[];
+ // atividade: 7 dias equivalentes
+ let am=0,any=false;const d=new Date(today);d.setDate(d.getDate()-1);for(let i=0;i<7;i++){const D=S.days[key(d)];if(D){any=true;am+=D.aer.m+2*D.aer.v}d.setDate(d.getDate()-1)}
+ rows.push(['🏃 Atividade física',any?am+' min/sem':null,any?(am>=150?100:am>=120?90:am>=90?80:am>=60?60:am>=30?40:am>=1?20:0):null]);
+ const du=[];const e=new Date(today);e.setDate(e.getDate()-1);for(let i=0;i<7;i++){const D=S.days[key(e)];const v=D?sleepDur(norm(D)):null;if(v!=null)du.push(v/60);e.setDate(e.getDate()-1)}
+ const sh=du.length?du.reduce((a,b)=>a+b,0)/du.length:null;rows.push(['😴 Sono',sh!=null?fmt(sh*60)+' (média)':null,sleepPts(sh)]);
+ rows.push(['🚭 Nicotina',['Fumador','Ex <1 ano','Ex 1–5 anos','Ex ≥5 anos','Nunca'][[0,25,50,75,100].indexOf(S.settings.nic??100)],S.settings.nic??100]);
+ const bw=[...S.body].filter(x=>x.w).sort((a,b)=>a.d<b.d?-1:1).pop();const w=bw?bw.w:S.settings.w;const bmi=w/((S.settings.h/100)**2);
+ rows.push(['⚖️ IMC',bmi.toFixed(1),bmi<25?100:bmi<30?70:bmi<35?30:bmi<40?15:0]);
+ const ps=L('PA sistólica'),pd=L('PA diastólica');
+ if(ps&&pd){const a=ps.v,b=pd.v;rows.push(['🩺 Pressão arterial',a+'/'+b,a>=160||b>=100?0:a>=140||b>=90?25:a>=130||b>=80?50:a>=120?75:100])}else rows.push(['🩺 Pressão arterial',null,null]);
+ const hb=L('HbA1c'),gl=L('Glicemia em jejum');let gp=null,gv=null;
+ if(hb){gv='HbA1c '+hb.v+'%';gp=hb.v<5.7?100:hb.v<6.5?60:hb.v<7?40:hb.v<8?30:hb.v<9?20:hb.v<10?10:0}
+ else if(gl){gv=gl.v+' mg/dL';gp=gl.v<100?100:gl.v<126?60:40}
+ rows.push(['🩸 Glicemia',gv,gp]);
+ const tc=L('Colesterol total'),hd=L('HDL-c');
+ if(tc&&hd){const nh=tc.v-hd.v;rows.push(['🧪 Colesterol não-HDL',nh+' mg/dL',nh<130?100:nh<160?60:nh<190?40:nh<220?20:0])}else rows.push(['🧪 Colesterol não-HDL',null,null]);
+ rows.push(['🥗 Dieta',null,null]);
+ const av=rows.filter(r=>r[2]!=null);return{rows,score:av.length?Math.round(av.reduce((s,r)=>s+r[2],0)/av.length):null,n:av.length}}
+function renderIdx(){
+ const yd=new Date();yd.setDate(yd.getDate()-1);yd.setHours(12,0,0,0);const ix=idxAt(yd);
+ const[lab,col]=ix?tier(ix.score):['Regista uns dias','var(--mut)'];
+ $('gauge').innerHTML=gauge(ix?ix.score:null,lab,col);
+ const order=['Atividade','Nutrição','Sono','Sedentarismo','Ritmo circadiano','Suplementos'];
+ $('doms').innerHTML=ix?order.filter(k=>ix.doms[k]).map(k=>{const v=Math.round(ix.doms[k].s/ix.doms[k].w*100);return `<div class="dom"><span>${k}</span><div class="b"><i style="width:${v}%;background:${tier(v)[1]}"></i></div><span>${v}</span></div>`}).join(''):'';
+ const pts=[];const t=new Date(yd);t.setDate(t.getDate()-29);for(let i=0;i<30;i++){const r=idxAt(t);if(r)pts.push({d:key(t),v:r.score});t.setDate(t.getDate()+1)}
+ $('idxTrend').innerHTML=pts.length>=2?lineChart(pts,'var(--ring1)','30 dias'):'';
+}
+$('idxInfoB').onclick=()=>$('idxInfo').classList.toggle('open');
+$('le8InfoB').onclick=()=>$('le8Info').classList.toggle('open');
 function renderHist(){
+ renderIdx();
  const today=new Date();today.setHours(12,0,0,0);
  const isOff=d=>{const D=S.days[key(d)];return!!(D&&D.off)};
  let st=0;const x=new Date(today);const s0=score(x);if(!isOff(x)&&(!s0||s0.p<.8))x.setDate(x.getDate()-1);
@@ -689,7 +783,7 @@ function insights(today){const out=[];const avg=a=>a.reduce((s,v)=>s+v,0)/a.leng
 $('heat').addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;const[y,m,d]=k.split('-').map(Number);view=new Date(y,m-1,d,12);lastPct=null;tab('hoje')});
 
 /* ---------- corpo ---------- */
-const LABS=[['HbA1c','%'],['Glicemia em jejum','mg/dL'],['ApoB','mg/dL'],['LDL-c','mg/dL'],['HDL-c','mg/dL'],['Triglicerídeos','mg/dL'],['Lp(a)','nmol/L'],['PCR-as','mg/L'],['Cistatina C','mg/L'],['Creatinina','mg/dL'],['25-OH vitamina D','ng/mL'],['Ferritina','ng/mL'],['TSH','mUI/L'],['PA sistólica','mmHg'],['PA diastólica','mmHg'],['FC em repouso','bpm'],['VO₂max (relógio)','mL/kg/min'],['Força de preensão','kg']];
+const LABS=[['HbA1c','%'],['Glicemia em jejum','mg/dL'],['ApoB','mg/dL'],['Colesterol total','mg/dL'],['LDL-c','mg/dL'],['HDL-c','mg/dL'],['Triglicerídeos','mg/dL'],['Lp(a)','nmol/L'],['PCR-as','mg/L'],['Cistatina C','mg/L'],['Creatinina','mg/dL'],['25-OH vitamina D','ng/mL'],['Ferritina','ng/mL'],['TSH','mUI/L'],['PA sistólica','mmHg'],['PA diastólica','mmHg'],['FC em repouso','bpm'],['VO₂max (relógio)','mL/kg/min'],['Força de preensão','kg']];
 const LU=Object.fromEntries(LABS);
 const dstr=k=>k.split('-').reverse().join('/');
 function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=26;
@@ -700,6 +794,9 @@ function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=
  <text x="2" y="${Y(y1)+4}" font-size="10" fill="var(--mut)">${y1}</text><text x="2" y="${Y(y0)+4}" font-size="10" fill="var(--mut)">${y0}</text>
  <text x="${P}" y="${H-1}" font-size="10" fill="var(--mut)">${dstr(pts[0].d).slice(0,5)}</text><text x="${W-8}" y="${H-1}" font-size="10" fill="var(--mut)" text-anchor="end">${dstr(pts[pts.length-1].d).slice(0,5)}</text><text x="${W-8}" y="12" font-size="10" fill="var(--mut)" text-anchor="end">${unit}</text></svg>`}
 function renderCorpo(){
+ {const r=le8();const[lab,col]=r.score==null?['Sem dados','var(--mut)']:r.score>=80?['Alto',"var(--green)"]:r.score>=50?['Moderado','var(--orange)']:['Baixo','var(--red)'];
+  $('le8g').innerHTML=gauge(r.score,`${lab} · ${r.n}/8 métricas`,col);
+  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'não medido':'sem dados — regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
  if(!$('lK').options.length)$('lK').innerHTML=LABS.map(([k,u])=>`<option value="${k}">${k} (${u})</option>`).join('');
  const t=key(new Date());if(!$('bD').value)$('bD').value=t;if(!$('lD').value)$('lD').value=t;
  const b=[...S.body].sort((x,y)=>x.d<y.d?-1:1);
@@ -731,7 +828,7 @@ function renderEv(){$('evList').innerHTML=ITEMS.map(it=>`<div class="card ev"><h
 
 /* ---------- definições ---------- */
 function renderCfg(){const s=S.settings;
- $('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;$('cSt').value=s.stepGoal;
+ $('cNic').value=String(s.nic??100);$('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;$('cSt').value=s.stepGoal;
  const dd=(arr,id)=>{$(id).innerHTML=[1,2,3,4,5,6,0].map(i=>`<button data-d="${i}" class="${arr.includes(i)?'on':''}">${DAYN[i]}</button>`).join('')};
  dd(s.aerDays,'cAer');dd(s.gtgDays,'cGtg');
  s.hidden=s.hidden||[];
@@ -739,7 +836,7 @@ function renderCfg(){const s=S.settings;
  if(!$('nB').options.length)$('nB').innerHTML=BLOCKS.map(b=>`<option value="${b.id}">${b.e} ${b.name}</option>`).join('');
  $('cCustom').innerHTML=(S.custom||[]).map(c=>`<button class="tag" data-cdel="${c.id}">${c.e} ${c.t} ✕</button>`).join(' ');
  $('protNote').innerHTML=`IMC ${(s.w/((s.h/100)**2)).toFixed(1)} kg/m² · proteína-alvo <b>${protT()} g/dia</b> (1,6 g/kg) ≈ <b>${mealT()} g por refeição</b> ≈ 2 palmas de carne/peixe por refeição.`}
-[['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number]].forEach(([id,k,f])=>{
+[['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number],['cNic','nic',Number]].forEach(([id,k,f])=>{
  $(id).addEventListener('change',e=>{let v=f(e.target.value);if(k==='jobS'||k==='jobE')v=v.slice(0,2)+':00';S.settings[k]=v;save();renderCfg()})});
 [['cAer','aerDays'],['cGtg','gtgDays']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const d=e.target.dataset.d;if(d==null)return;const a=S.settings[k],n=+d,i=a.indexOf(n);i>=0?a.splice(i,1):a.push(n);save();renderCfg()}));
 async function giveFile(txt,name,type,label){
