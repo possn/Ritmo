@@ -248,8 +248,24 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
     <table id="le8t"></table>
     <button class="info" id="le8InfoB">ⓘ Sobre o LE8</button>
     <div class="more" id="le8Info">Life's Essential 8 (American Heart Association): 8 métricas de 0 a 100; o score é a média. ≥80 alto, 50–79 moderado, &lt;50 baixo. Scores mais altos associam-se a menor incidência de doença cardiovascular e maior esperança de vida em coortes.<br><br>
-    Aqui a atividade física e o sono vêm dos teus registos de 7 dias; IMC, PA, glicemia e lípidos vêm do Corpo (lípidos = colesterol não-HDL = total − HDL). A dieta exige o questionário MEPA, que não está implementado — o score usa só as métricas disponíveis. Não estão aplicadas as penalizações por medicação (−20 na PA, nos lípidos ou na glicemia se estiveres medicado).
+    Aqui a atividade física e o sono vêm dos teus registos de 7 dias; IMC, PA, glicemia e lípidos vêm do Corpo (lípidos = colesterol não-HDL = total − HDL). A dieta vem do questionário MEPA (cartão abaixo). Se faltar alguma métrica, o score usa só as disponíveis. Não estão aplicadas as penalizações por medicação (−20 na PA, nos lípidos ou na glicemia se estiveres medicado).
     <div class="ref">Lloyd-Jones DM et al. Circulation 2022;146:e18–e43.</div></div>
+  </div>
+  <div class="card"><div class="ct">Dieta · questionário MEPA</div>
+    <div id="mepaSum" class="kv" style="margin-top:0"></div>
+    <button class="btn" id="mepaOpen" style="margin-top:10px">Responder (2 min)</button>
+    <div id="mepaForm" style="display:none;margin-top:10px">
+      <div class="note" style="margin-bottom:6px">Pensa numa semana habitual. 1 porção ≈ 1 colher de sopa de azeite, 1 chávena de vegetais crus ou ½ cozinhados, 1 peça de fruta, 1 palma de carne/peixe, ½ chávena de leguminosas, 1 fatia de pão, 1 mão-cheia de frutos secos. <b>📱</b> = sugestão a partir dos teus registos dos últimos 7 dias.</div>
+      <div id="mepaQ"></div>
+      <div class="kv" id="mepaLive" style="margin:10px 0"></div>
+      <button class="btn" id="mepaSave">Guardar respostas</button>
+    </div>
+    <button class="info" id="mepaInfoB">ⓘ Sobre o MEPA</button>
+    <div class="more" id="mepaInfo">16 perguntas de sim/não (1 ponto cada) sobre o padrão alimentar mediterrânico, adaptadas por Tangney et al. (Rush University) e validadas contra um questionário de frequência alimentar completo. É o instrumento recomendado no LE8 para a dieta individual: 15–16 → 100 pontos · 12–14 → 80 · 8–11 → 50 · 4–7 → 25 · 0–3 → 0. A resposta vale 90 dias no LE8.<br><br>
+    <b>Nota sobre o álcool:</b> o item 16 dá ponto a quem bebe pouco (&gt;0 e ≤2 bebidas/dia em homens) e não a quem não bebe. Isto reflete a evidência antiga sobre o consumo ligeiro; meta-análises recentes, que corrigem o viés de ex-bebedores no grupo de não bebedores, não encontram menor mortalidade com consumo baixo face a abstémios ao longo da vida. Mantive a pontuação original para o LE8 ser comparável — com 15/16 tens na mesma 100 pontos.
+    <div class="ref">Cerwinske LA et al. J Hum Nutr Diet 2017;30:596–603.</div>
+    <div class="ref">Lloyd-Jones DM et al. Circulation 2022;146:e18–e43.</div>
+    <div class="ref">Zhao J et al. JAMA Netw Open 2023;6:e236185 — álcool e mortalidade.</div></div>
   </div>
   <div class="card"><div class="ct">Peso e cintura</div>
     <div class="inl"><label>Data<input type="date" id="bD"></label><label>Peso (kg)<input type="number" id="bW" step="0.1" inputmode="decimal"></label><label>Cintura (cm)<input type="number" id="bC" step="0.5" inputmode="decimal"></label></div>
@@ -437,7 +453,7 @@ function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
  if(!S)S=JSON.parse(JSON.stringify(DEF));
- S.settings=Object.assign({},DEF.settings,S.settings||{});S.days=S.days||{};S.body=S.body||[];S.labs=S.labs||[];S.custom=S.custom||[];Object.values(S.days).forEach(norm)}
+ S.settings=Object.assign({},DEF.settings,S.settings||{});S.days=S.days||{};S.body=S.body||[];S.labs=S.labs||[];S.custom=S.custom||[];S.mepa=S.mepa||[];Object.values(S.days).forEach(norm)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
 
@@ -710,7 +726,8 @@ function le8(){const L=k=>{const g=S.labs.filter(x=>x.k===k).sort((a,b)=>a.d<b.d
  rows.push(['🩸 Glicemia',gv,gp]);
  const tc=L('Colesterol total'),hd=L('HDL-c');
  if(tc&&hd){const nh=tc.v-hd.v;rows.push(['🧪 Colesterol não-HDL',nh+' mg/dL',nh<130?100:nh<160?60:nh<190?40:nh<220?20:0])}else rows.push(['🧪 Colesterol não-HDL',null,null]);
- rows.push(['🥗 Dieta',null,null]);
+ {const m=S.mepa&&S.mepa.length?S.mepa[S.mepa.length-1]:null;const ok=m&&(Date.now()-new Date(m.d))/864e5<=90;
+  rows.push(['🥗 Dieta (MEPA)',ok?`${m.n}/16 · ${dstr(m.d)}`:null,ok?mepaPts(m.n):null])}
  const av=rows.filter(r=>r[2]!=null);return{rows,score:av.length?Math.round(av.reduce((s,r)=>s+r[2],0)/av.length):null,n:av.length}}
 function renderIdx(){
  const yd=new Date();yd.setDate(yd.getDate()-1);yd.setHours(12,0,0,0);const ix=idxAt(yd);
@@ -811,6 +828,43 @@ function insights(today){const out=[];const avg=a=>a.reduce((s,v)=>s+v,0)/a.leng
  return out}
 $('heat').addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;const[y,m,d]=k.split('-').map(Number);view=new Date(y,m-1,d,12);lastPct=null;tab('hoje')});
 
+/* ---------- MEPA ---------- */
+const MEPA=[
+ ['🫒','Azeite (a cozinhar e a temperar)','≥2 porções/dia'],
+ ['🥬','Vegetais de folha verde','≥7 porções/semana'],
+ ['🥕','Outros vegetais','≥2 porções/dia'],
+ ['🫐','Frutos vermelhos','≥2 porções/semana'],
+ ['🍎','Outra fruta','≥1 porção/dia'],
+ ['🥩','Carne vermelha, hambúrguer, bacon ou salsichas','≤3 porções/semana'],
+ ['🐟','Peixe (não frito)','≥1 porção/semana'],
+ ['🍗','Frango (não frito)','≤5 porções/semana'],
+ ['🧀','Queijo gordo ou queijo-creme','≤4 porções/semana'],
+ ['🧈','Manteiga ou natas','≤5 porções/semana'],
+ ['🫘','Leguminosas (feijão, grão, lentilhas, soja/tofu)','≥3 porções/semana'],
+ ['🍞','Cereais integrais (pão, massa, cereais)','≥3 porções/dia'],
+ ['🍰','Doces comerciais (bolos, bolachas, pastelaria)','≤4 porções/semana'],
+ ['🌰','Frutos secos','≥4 porções/semana'],
+ ['🍔','Refeições de fast food','≤1 por semana'],
+ ['🍷','Álcool','>0 e ≤2 bebidas/dia']];
+const mepaPts=n=>n>=15?100:n>=12?80:n>=8?50:n>=4?25:0;
+function mepaHints(){const ds=[];const d=new Date();for(let i=0;i<7;i++){const D=S.days[key(d)];if(D)ds.push(norm(D));d.setDate(d.getDate()-1)}
+ if(ds.length<3)return{};const cnt=id=>ds.reduce((s,D)=>s+D.pf.a.concat(D.pf.j).filter(x=>x===id).length,0);
+ const doneN=id=>{const it=ITEMS.find(i=>i.id===id);return ds.filter(D=>done(it,D)).length};
+ const h={};h[0]=ds.filter(D=>done(ITEMS.find(i=>i.id==='almoco'),D)&&done(ITEMS.find(i=>i.id==='jantar'),D)).length>=ds.length*0.7;
+ h[5]=cnt('carne')<=3;h[6]=cnt('peixe')+cnt('lata')>=1;h[7]=cnt('frango')<=5;h[10]=cnt('leg')+cnt('tofu')>=3;h[13]=doneN('nozes')>=4;return h}
+let mepaDraft=null;
+function renderMepa(){const last=S.mepa.length?S.mepa[S.mepa.length-1]:null;
+ $('mepaSum').innerHTML=last?`Último: <b>${last.n}/16</b> → <b>${mepaPts(last.n)}</b> pontos LE8 · ${dstr(last.d)}${(Date.now()-new Date(last.d))/864e5>90?' <span class="warn">(mais de 90 dias — responde de novo)</span>':''}`:'<span class="note">Ainda não respondeste. Sem isto, o LE8 fica com 7/8 métricas.</span>';
+ if(!mepaDraft)return;const H=mepaHints();
+ $('mepaQ').innerHTML=MEPA.map(([e,t,thr],i)=>`<div class="tg"><span>${e} ${t}<br><span class="note">${thr}${H[i]!=null?` · 📱 ${H[i]?'sim':'não'}`:''}</span></span><button class="sw${mepaDraft[i]?' on':''}" data-mq="${i}" aria-pressed="${!!mepaDraft[i]}" aria-label="${t}"></button></div>`).join('');
+ const n=mepaDraft.filter(Boolean).length;$('mepaLive').innerHTML=`Total <b>${n}/16</b> → <b>${mepaPts(n)}</b> pontos LE8`}
+$('mepaOpen').onclick=()=>{const last=S.mepa.length?S.mepa[S.mepa.length-1]:null;const H=mepaHints();
+ mepaDraft=last?[...last.a]:MEPA.map((_,i)=>!!H[i]);$('mepaForm').style.display='block';$('mepaOpen').style.display='none';renderMepa()};
+$('mepaQ').addEventListener('click',e=>{const i=e.target.dataset.mq;if(i==null)return;mepaDraft[+i]=!mepaDraft[+i];renderMepa()});
+$('mepaSave').onclick=()=>{const n=mepaDraft.filter(Boolean).length;const d=key(new Date());S.mepa=S.mepa.filter(x=>x.d!==d);S.mepa.push({d,a:mepaDraft,n});save();
+ mepaDraft=null;$('mepaForm').style.display='none';$('mepaOpen').style.display='';$('mepaOpen').textContent='Responder de novo';renderCorpo();toast(`🥗 MEPA ${n}/16 · ${mepaPts(n)} pontos`)};
+$('mepaInfoB').onclick=()=>$('mepaInfo').classList.toggle('open');
+
 /* ---------- corpo ---------- */
 const LABS=[['HbA1c','%'],['Glicemia em jejum','mg/dL'],['ApoB','mg/dL'],['Colesterol total','mg/dL'],['LDL-c','mg/dL'],['HDL-c','mg/dL'],['Triglicerídeos','mg/dL'],['Lp(a)','nmol/L'],['PCR-as','mg/L'],['Cistatina C','mg/L'],['Creatinina','mg/dL'],['25-OH vitamina D','ng/mL'],['Ferritina','ng/mL'],['TSH','mUI/L'],['PA sistólica','mmHg'],['PA diastólica','mmHg'],['FC em repouso','bpm'],['VO₂max (relógio)','mL/kg/min'],['Exercício semanal (relógio)','min/sem'],['Força de preensão','kg']];
 const LU=Object.fromEntries(LABS);
@@ -823,9 +877,10 @@ function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=
  <text x="2" y="${Y(y1)+4}" font-size="10" fill="var(--mut)">${y1}</text><text x="2" y="${Y(y0)+4}" font-size="10" fill="var(--mut)">${y0}</text>
  <text x="${P}" y="${H-1}" font-size="10" fill="var(--mut)">${dstr(pts[0].d).slice(0,5)}</text><text x="${W-8}" y="${H-1}" font-size="10" fill="var(--mut)" text-anchor="end">${dstr(pts[pts.length-1].d).slice(0,5)}</text><text x="${W-8}" y="12" font-size="10" fill="var(--mut)" text-anchor="end">${unit}</text></svg>`}
 function renderCorpo(){
+ renderMepa();if(S.mepa.length)$('mepaOpen').textContent='Responder de novo';
  {const r=le8();const[lab,col]=r.score==null?['Sem dados','var(--mut)']:r.score>=80?['Alto',"var(--green)"]:r.score>=50?['Moderado','var(--orange)']:['Baixo','var(--red)'];
   $('le8g').innerHTML=gauge(r.score,`${lab} · ${r.n}/8 métricas`,col);
-  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'não medido (requer questionário MEPA)':n.includes('Atividade')?'regista minutos de aeróbio no Hoje, ou o total semanal do relógio em Análises':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
+  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'responde ao questionário MEPA (abaixo)':n.includes('Atividade')?'regista minutos de aeróbio no Hoje, ou o total semanal do relógio em Análises':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
  if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['⌚','Exercício semanal (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
  if(!$('lK').options.length)$('lK').innerHTML=LABS.map(([k,u])=>`<option value="${k}">${k} (${u})</option>`).join('');
  const t=key(new Date());if(!$('bD').value)$('bD').value=t;if(!$('lD').value)$('lD').value=t;
@@ -885,7 +940,7 @@ $('csv').onclick=()=>{const items=ALL();const hdr=['data','adesao_pct'].concat(i
   return [k,sc?Math.round(sc.p*100):''].concat(items.map(i=>done(i,D)?1:0),[D.sq.length*10,D.gtg.length,gtgTon(D),protDay(D),D.aer.m,D.aer.v,D.steps||'',D.sl.bed,D.sl.wake,sleepDur(D)??'',D.meal.first,D.meal.last,D.off?'livre':D.urg?'urgencia':'normal','"'+(D.note||'').replace(/"/g,'""').replace(/\n/g,' ')+'"'])});
  const txt=[hdr].concat(rows).map(r=>r.join(';')).join('\n');
  giveFile('\ufeff'+txt,'ritmo-'+key(new Date())+'.csv','text/csv','Ritmo CSV')};
-$('impF').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.days)throw 0;S=o;S.settings=Object.assign({},DEF.settings,o.settings);S.body=S.body||[];S.labs=S.labs||[];S.custom=S.custom||[];Object.values(S.days).forEach(norm);save();renderCfg();toast('✓ Backup importado')}catch(err){toast('Ficheiro inválido')}})};
+$('impF').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.days)throw 0;S=o;S.settings=Object.assign({},DEF.settings,o.settings);S.body=S.body||[];S.labs=S.labs||[];S.custom=S.custom||[];S.mepa=S.mepa||[];Object.values(S.days).forEach(norm);save();renderCfg();toast('✓ Backup importado')}catch(err){toast('Ficheiro inválido')}})};
 let rstArm=0;$('rst').onclick=()=>{if(Date.now()-rstArm<3000){S=JSON.parse(JSON.stringify(DEF));save();renderCfg();toast('Dados apagados')}else{rstArm=Date.now();toast('Toca outra vez para confirmar')}};
 
 /* ---------- navegação ---------- */
