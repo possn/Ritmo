@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ritmo — Protocolo de Longevidade</title>
+<meta name="theme-color" content="#0f1412">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ritmo">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#0f1412;--card:#18201c;--card2:#1f2924;--line:#2a3630;
+  --tx:#e8efe9;--mut:#93a39a;--acc:#e8a33d;--acc2:#7cc79a;--bad:#e06c5a;--blu:#6aa8d8;
+  --r:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom))}
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 0}
+header{display:flex;align-items:center;gap:12px;margin:4px 2px 14px}
+header .logo{width:40px;height:40px;flex:none}
+header h1{font-size:20px;margin:0;letter-spacing:.2px}
+header .sub{color:var(--mut);font-size:13px}
+header .sub::first-letter{text-transform:uppercase}
+.dnav{margin-left:auto;display:flex;gap:6px}
+.dnav button{background:var(--card);border:1px solid var(--line);color:var(--tx);width:34px;height:34px;border-radius:10px;font-size:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.hero{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.ring{width:96px;height:96px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .v b{font-size:22px}.ring .v span{font-size:11px;color:var(--mut)}
+.fast .state{font-weight:600;font-size:16px}
+.fast .t{font-size:26px;font-weight:700;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.fast .m{color:var(--mut);font-size:13px}
+.bar{height:6px;background:var(--card2);border-radius:6px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:6px;transition:width .4s}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--card2);color:var(--mut);border:1px solid var(--line)}
+.block{margin:18px 2px 8px;display:flex;align-items:baseline;gap:8px}
+.block h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:0}
+.block .h{font-size:12px;color:var(--mut);opacity:.7}
+.block.now h2{color:var(--acc)}
+.block.now::after{content:"agora";font-size:10px;background:var(--acc);color:#1a1205;padding:1px 7px;border-radius:10px;font-weight:700}
+.item{display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:8px}
+.item.done{border-color:#2f5a41;background:#16231c}
+.chk{width:28px;height:28px;border-radius:9px;border:2px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;background:transparent;color:transparent;font-size:16px;padding:0}
+.item.done .chk{background:var(--acc2);border-color:var(--acc2);color:#0f1412}
+.item .body{flex:1;min-width:0}
+.item .tt{font-weight:600}
+.item.done .tt{color:var(--mut)}
+.item .ds{color:var(--mut);font-size:13px;margin-top:2px}
+.info{background:none;border:none;color:var(--mut);font-size:12px;padding:4px 0 0;text-decoration:underline;text-underline-offset:3px}
+.more{display:none;margin-top:8px;font-size:13px;color:#c5d1ca;border-top:1px dashed var(--line);padding-top:8px}
+.more.open{display:block}
+.g{display:inline-block;min-width:22px;text-align:center;font-weight:700;font-size:11px;border-radius:6px;padding:1px 5px;margin-right:6px}
+.gA{background:#2c6e49;color:#e6fff0}.gB{background:#3e6f8f;color:#eaf6ff}.gC{background:#8a6a22;color:#fff6e0}.gD{background:#7a3a32;color:#ffece9}
+.hours{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;margin-top:10px}
+.hours button{height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--mut);font-size:12px;font-variant-numeric:tabular-nums}
+.hours button.on{background:var(--acc2);color:#0f1412;border-color:var(--acc2);font-weight:700}
+.hours button.cur{outline:2px solid var(--acc);outline-offset:1px}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.btns button,.btn{background:var(--card2);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;font-size:13px}
+.btn.pri{background:var(--acc);color:#1a1205;border-color:var(--acc);font-weight:700}
+.btn.dan{border-color:#5a2a24;color:var(--bad)}
+.log{font-size:12px;color:var(--mut);margin-top:8px;display:flex;flex-wrap:wrap;gap:4px}
+.log span{background:var(--card2);border-radius:8px;padding:2px 7px;cursor:pointer}
+.rest{color:var(--blu);font-size:13px;margin-top:4px}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:rgba(15,20,18,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:9}
+nav.tabs button{flex:1;max-width:140px;background:none;border:none;color:var(--mut);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--acc)}
+section{display:none}section.on{display:block}
+.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.heat div{aspect-ratio:1;border-radius:6px;background:var(--card2);font-size:10px;color:rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center}
+.heat .lbl{background:none;color:var(--mut);aspect-ratio:auto;padding-bottom:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--card2);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:22px}.stat span{font-size:11px;color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:7px 4px;border-bottom:1px solid var(--line)}
+td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.ev h3{margin:0 0 4px;font-size:15px}
+.ev p{margin:6px 0;font-size:13px;color:#c5d1ca}
+.ev .ref{font-size:12px;color:var(--mut);margin:3px 0 0;padding-left:10px;border-left:2px solid var(--line)}
+.ev .warn{font-size:13px;color:#f0c27a;margin-top:6px}
+label.row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);gap:10px}
+input[type=time],input[type=number]{background:var(--card2);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:14px;width:110px}
+.days{display:flex;gap:5px;flex-wrap:wrap}
+.days button{width:38px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--mut);font-size:12px}
+.days button.on{background:var(--blu);color:#0f1412;font-weight:700;border-color:var(--blu)}
+.note{font-size:12px;color:var(--mut)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:6px}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--acc);color:#1a1205;padding:8px 14px;border-radius:20px;font-weight:600;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#18201c"/><path d="M10 42h44" stroke="#2a3630" stroke-width="3" stroke-linecap="round"/><path d="M18 42a14 14 0 0 1 28 0" fill="none" stroke="#e8a33d" stroke-width="4" stroke-linecap="round"/><g stroke="#e8a33d" stroke-width="3" stroke-linecap="round"><path d="M32 18v-6"/><path d="M15 25l-4-4"/><path d="M49 25l4-4"/></g><path d="M12 50h10l4-6 5 10 5-12 4 8h12" fill="none" stroke="#7cc79a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><h1>Ritmo</h1><div class="sub" id="dateLbl"></div></div>
+    <div class="dnav"><button id="prevD" aria-label="Dia anterior">‹</button><button id="todayD" aria-label="Hoje">•</button><button id="nextD" aria-label="Dia seguinte">›</button></div>
+  </header>
+
+  <section id="s-hoje" class="on">
+    <div class="card hero">
+      <div class="ring"><svg width="96" height="96"><circle cx="48" cy="48" r="40" fill="none" stroke="#1f2924" stroke-width="9"/><circle id="ringArc" cx="48" cy="48" r="40" fill="none" stroke="#7cc79a" stroke-width="9" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3" style="transition:stroke-dashoffset .5s"/></svg><div class="v"><b id="pct">0%</b><span id="cnt">0/0</span></div></div>
+      <div class="fast">
+        <div class="state" id="fState">—</div>
+        <div class="t" id="fTime">--:--</div>
+        <div class="m" id="fMeta"></div>
+        <div class="bar"><i id="fBar" style="width:0"></i></div>
+      </div>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section id="s-hist">
+    <div class="card"><div class="stats">
+      <div class="stat"><b id="stStreak">0</b><span>dias seguidos ≥80%</span></div>
+      <div class="stat"><b id="stAvg">0%</b><span>média 7 dias</span></div>
+      <div class="stat"><b id="stAer">0/2</b><span>aeróbio semana</span></div>
+    </div></div>
+    <div class="card"><div style="font-weight:600;margin-bottom:8px">Últimas 5 semanas</div><div class="heat" id="heat"></div>
+      <div class="legend"><span>□ 0%</span><span style="color:#3e6f55">■ &lt;50%</span><span style="color:#5aa47a">■ 50–79%</span><span style="color:#7cc79a">■ ≥80%</span></div></div>
+    <div class="card"><div style="font-weight:600;margin-bottom:6px">Adesão por item — 14 dias</div><table id="adh"></table></div>
+    <div class="card"><div style="font-weight:600;margin-bottom:6px">Volume — 7 dias</div><table id="vol"></table></div>
+  </section>
+
+  <section id="s-ev">
+    <div class="card" style="font-size:13px;color:#c5d1ca">
+      <b style="color:var(--tx)">Grau de evidência (por item, em humanos):</b><br>
+      <span class="g gA">A</span>RCTs/meta-análises com desfechos relevantes ·
+      <span class="g gB">B</span>RCTs com marcadores intermédios ou coortes consistentes ·
+      <span class="g gC">C</span>dados humanos escassos/indiretos ·
+      <span class="g gD">D</span>mecanismo pré-clínico (células/animais).<br>
+      <span class="note">O grau aplica-se à intervenção; o mecanismo invocado no protocolo (SIRT1, CD38, NAD+…) é frequentemente apenas pré-clínico e está assinalado separadamente.</span>
+    </div>
+    <div id="evList"></div>
+  </section>
+
+  <section id="s-cfg">
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:4px">Perfil</div>
+      <label class="row">Altura (cm)<input type="number" id="cH" min="120" max="220"></label>
+      <label class="row">Peso (kg)<input type="number" id="cW" min="30" max="200" step="0.5"></label>
+      <div class="note" id="protNote" style="padding-top:8px"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:4px">Horários</div>
+      <label class="row">Janela alimentar abre<input type="time" id="cWO"></label>
+      <label class="row">Janela alimentar fecha<input type="time" id="cWC"></label>
+      <label class="row">Início do trabalho<input type="time" id="cJS" step="3600"></label>
+      <label class="row">Fim do trabalho<input type="time" id="cJE" step="3600"></label>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:6px">Dias de aeróbio (alvo 2×/semana)</div>
+      <div class="days" id="cAer"></div>
+      <div style="font-weight:600;margin:14px 0 6px">Dias de GtG kettlebell</div>
+      <div class="days" id="cGtg"></div>
+      <label class="row">Alvo de séries GtG/dia<input type="number" id="cGS" min="1" max="40"></label>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:8px">Dados (guardados só neste dispositivo)</div>
+      <div class="btns">
+        <button class="btn" id="exp">Exportar backup</button>
+        <button class="btn" id="imp">Importar backup</button>
+        <button class="btn dan" id="rst">Apagar tudo</button>
+      </div>
+      <input type="file" id="impF" accept="application/json" hidden>
+      <p class="note">Sem servidor: nada sai do telemóvel. Faz backup antes de mudar de dispositivo ou limpar o browser.</p>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs">
+  <button data-t="hoje" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Hoje</button>
+  <button data-t="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Histórico</button>
+  <button data-t="ev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M8 7h8M8 11h6"/></svg>Evidência</button>
+  <button data-t="cfg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Definições</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- conteúdo do protocolo ---------- */
+const BLOCKS=[
+ {id:'manha',name:'Manhã · jejum e ativação',from:5,to:12},
+ {id:'trab',name:'Horas de trabalho · movimento',from:'jobS',to:'jobE'},
+ {id:'almoco',name:'Janela alimentar · almoço',from:'winO',to:14},
+ {id:'tarde',name:'Tarde · fim de expediente',from:17,to:20},
+ {id:'jantar',name:'Janela alimentar · jantar',from:18,to:'winC'}
+];
+const ITEMS=[
+ {id:'luz',b:'manha',t:'Luz solar matinal + hidratação',d:'5–15 min ao ar livre na 1.ª hora após acordar; 300–500 mL de água.',
+  obj:'Ancorar o ritmo circadiano (CLOCK/BMAL1), regular a resposta de cortisol ao despertar.',g:'B',
+  ev:'Exposição à luz natural avança e estabiliza a fase circadiana em humanos (melatonina/DLMO). A ligação a NAD+ (via NAMPT controlado pelo CLOCK:BMAL1) é demonstrada em ratinho.',
+  mech:'D',refs:['Wright KP et al. Curr Biol 2013;23:1554–8 — entrainment à luz natural.','Ramsey KM et al. Science 2009;324:651–4 — NAMPT/NAD+ circadiano (ratinho).']},
+ {id:'matcha',b:'manha',t:'Chá matcha em jejum',d:'1 dose (≈1–2 g) em água, sem açúcar/leite.',
+  obj:'EGCG (AMPK/sirtuínas) + L-teanina para foco sem pico de ansiedade, sem quebrar o jejum.',g:'C',
+  ev:'L-teanina + cafeína melhora modestamente atenção em pequenos RCTs. Ativação de AMPK/sirtuínas por EGCG é pré-clínica. Energia desprezível — não interrompe o jejum de forma relevante.',
+  mech:'D',warn:'Hepatotoxicidade descrita com EGCG em suplemento ≥800 mg/dia (EFSA); a bebida está muito abaixo disso.',
+  refs:['Owen GN et al. Nutr Neurosci 2008;11:193–8 — L-teanina + cafeína.','EFSA ANS Panel. EFSA J 2018;16(4):5239 — segurança das catequinas.']},
+ {id:'agach',b:'trab',type:'squat',t:'10 agachamentos a cada hora',d:'Toca na hora para registar a série (10 reps).',
+  obj:'Translocação de GLUT4 independente da insulina; quebrar o sedentarismo.',g:'A',
+  ev:'Interromper o tempo sentado com pausas ativas breves reduz a glicemia e insulinemia pós-prandiais (RCTs crossover). A captação de glicose por contração muscular independente da insulina é fisiologia estabelecida.',
+  refs:['Dunstan DW et al. Diabetes Care 2012;35:976–83.','Richter EA, Hargreaves M. Physiol Rev 2013;93:993–1017.']},
+ {id:'gtg',b:'trab',type:'gtg',t:'Greasing the Groove · kettlebell',d:'Séries curtas, longe da falha, ao longo do dia (30–45 min acumulados).',
+  obj:'Treino neuromuscular frequente sem fadiga central.',g:'B',
+  ev:'Treino de força 30–60 min/semana associa-se a ~10–20% menor mortalidade por todas as causas (meta-análise de coortes). O formato GtG (prática distribuída submáxima) tem pouca evidência formal; a alegação de "evitar cortisol elevado" não está demonstrada.',
+  refs:['Momma H et al. Br J Sports Med 2022;56:755–63.']},
+ {id:'almoco',b:'almoco',t:'1.ª refeição — proteína + sopa + azeite VE',d:'Quebra do jejum 16:8. Alvo proteico na secção Definições.',
+  obj:'Proteína de alta qualidade, fibra/hidratos de baixo IG, ácido oleico (SIRT1).',g:'A',
+  ev:'Dieta mediterrânica suplementada com azeite VE reduziu eventos CV major (PREDIMED). A ativação da SIRT1 por ácido oleico via PLIN5 é celular/animal.',
+  mech:'D',refs:['Estruch R et al. N Engl J Med 2018;378:e34 (PREDIMED).','Najt CP et al. Mol Cell 2020;77:810–24 — MUFA→SIRT1.']},
+ {id:'fruta',b:'almoco',t:'Fruta rica em polifenóis',d:'Frutos vermelhos ou maçã com casca.',
+  obj:'Fisetina, quercetina (inibição CD38) — "STACs".',g:'B',
+  ev:'Maior consumo de fruta associa-se a menor mortalidade e doença CV (meta-análise de coortes). Efeitos senolíticos (fisetina) e inibição de CD38 (quercetina/apigenina) são de ratinho/in vitro, com doses muito superiores às alimentares.',
+  mech:'D',refs:['Aune D et al. Int J Epidemiol 2017;46:1029–56.','Yousefzadeh MJ et al. EBioMedicine 2018;36:18–28 — fisetina (ratinho).','Escande C et al. Diabetes 2013;62:1084–93 — CD38 (ratinho).']},
+ {id:'creat',b:'almoco',t:'Creatina monohidratada 3–5 g',d:'Com o almoço. A consistência diária importa mais do que o horário.',
+  obj:'Bioenergética muscular, proteção cognitiva, hidratação celular.',g:'A',
+  ev:'Aumenta força e massa magra com treino de resistência; perfil de segurança robusto. Efeito cognitivo modesto, mais evidente em privação de sono/stress.',
+  warn:'Eleva a creatinina sérica sem alterar a TFG real — considerar cistatina C se avaliar função renal.',
+  refs:['Kreider RB et al. J Int Soc Sports Nutr 2017;14:18.','Avgerinos KI et al. Exp Gerontol 2018;108:166–73 — cognição.']},
+ {id:'aer',b:'tarde',type:'aer',t:'Exercício aeróbio estruturado',d:'Zona 2 ou HIIT curto. Alvo: 2×/semana, separado da força.',
+  obj:'Biogénese e capacidade mitocondrial.',g:'A',
+  ev:'A capacidade cardiorrespiratória é um dos preditores mais fortes de mortalidade, sem teto aparente. Nota: 2 sessões só cumprem as recomendações OMS (150–300 min moderado ou 75–150 min vigoroso/semana) se forem suficientemente longas/intensas.',
+  refs:['Mandsager K et al. JAMA Netw Open 2018;1:e183605.','Bull FC et al. Br J Sports Med 2020;54:1451–62 (OMS).']},
+ {id:'jantar',b:'jantar',t:'Última refeição — proteína + sopa + azeite VE',d:'Antes do fecho da janela.',
+  obj:'Densidade nutricional limpa.',g:'A',
+  ev:'Mesma base que o almoço. Com apenas 2 refeições, o alvo proteico diário tem de caber aqui — ver Definições.',
+  refs:['Morton RW et al. Br J Sports Med 2018;52:376–84 — proteína ~1,6 g/kg/dia para ganhos de massa magra.']},
+ {id:'nozes',b:'jantar',t:'Frutos secos 25–30 g',d:'Nozes, amêndoas com pele, 1–2 castanhas-do-pará.',
+  obj:'ALA, precursores de urolitina A, selénio.',g:'B',
+  ev:'≈28 g/dia associa-se a menor mortalidade e doença CV (meta-análise); RCT PREDIMED com frutos secos. A conversão de elagitaninos em urolitina A depende do metabotipo da microbiota (nem todos produzem).',
+  warn:'Castanha-do-pará: 1–2/dia chega (≈50–100 µg Se cada); suplementar selénio não mostrou benefício (SELECT) e o excesso é tóxico.',
+  refs:['Aune D et al. BMC Med 2016;14:207.','Estruch R et al. N Engl J Med 2018;378:e34.']},
+ {id:'fecho',b:'jantar',t:'Fecho da janela alimentar',d:'Início do jejum de 16 h.',
+  obj:'Jejum 16:8 diário.',g:'B',
+  ev:'Em RCTs, o TRE 16:8 não foi superior à restrição calórica isocalórica no peso/metabolismo; no TREAT houve perda de massa magra. Uma janela mais precoce (ex.: 8–14 h) melhorou sensibilidade à insulina mesmo sem perda de peso — a janela 12–20 h é das menos favoráveis nesse aspeto.',
+  warn:'Com IMC ≈20, a prioridade é proteger massa magra: proteína suficiente + força.',
+  refs:['Lowe DA et al. JAMA Intern Med 2020;180:1491–9 (TREAT).','Liu D et al. N Engl J Med 2022;386:1495–504.','Sutton EF et al. Cell Metab 2018;27:1212–21 (eTRF).']}
+];
+const DAYN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+/* ---------- estado ---------- */
+const KEY='ritmo.v1';
+const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12},days:{}};
+let S;
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
+ if(!S){S=JSON.parse(JSON.stringify(DEF))}
+ S.settings=Object.assign({},DEF.settings,S.settings||{});S.days=S.days||{}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+load();
+
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const hm=s=>{const[a,b]=s.split(':').map(Number);return a*60+b};
+const hr=s=>Math.floor(hm(s)/60);
+let view=new Date();view.setHours(12,0,0,0);
+function day(k){return S.days[k]||(S.days[k]={c:{},sq:[],gtg:[]})}
+function isToday(){return key(view)===key(new Date())}
+
+/* aplicabilidade e conclusão */
+function applies(it,d){const dw=d.getDay();
+ if(it.type==='gtg')return S.settings.gtgDays.includes(dw);
+ if(it.type==='aer')return S.settings.aerDays.includes(dw)||!!(S.days[key(d)]&&S.days[key(d)].c.aer);
+ return true}
+function workHours(){const a=hr(S.settings.jobS),b=hr(S.settings.jobE);const r=[];for(let h=a;h<b;h++)r.push(h);return r}
+function done(it,D){
+ if(it.type==='squat')return !!D.c[it.id]||D.sq.length>=Math.max(1,Math.ceil(workHours().length*0.8));
+ if(it.type==='gtg')return !!D.c[it.id]||D.gtg.length>=S.settings.gtgSets;
+ return !!D.c[it.id]}
+function score(d){const D=S.days[key(d)];if(!D)return null;
+ const ap=ITEMS.filter(i=>applies(i,d));const n=ap.filter(i=>done(i,D)).length;
+ return {n,t:ap.length,p:ap.length?n/ap.length:0}}
+
+/* ---------- render Hoje ---------- */
+const $=id=>document.getElementById(id);
+function resolveH(v){return typeof v==='number'?v:hr(S.settings[v])}
+function render(){
+ const D=day(key(view));const now=new Date();const curH=now.getHours();
+ $('dateLbl').textContent=view.toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'})+(isToday()?'':' · arquivo');
+ let html='';
+ BLOCKS.forEach(B=>{
+  const its=ITEMS.filter(i=>i.b===B.id);
+  const f=resolveH(B.from),t=resolveH(B.to);
+  const isNow=isToday()&&curH>=f&&curH<t;
+  html+=`<div class="block${isNow?' now':''}"><h2>${B.name}</h2><span class="h">${pad(f)}–${pad(t)}h</span></div>`;
+  its.forEach(it=>{html+=itemHTML(it,D)});
+ });
+ $('list').innerHTML=html;
+ const sc=score(view)||{n:0,t:ITEMS.filter(i=>applies(i,view)).length,p:0};
+ $('pct').textContent=Math.round(sc.p*100)+'%';$('cnt').textContent=sc.n+'/'+sc.t;
+ $('ringArc').style.strokeDashoffset=251.3*(1-sc.p);
+ fasting();
+}
+function itemHTML(it,D){
+ const dw=view.getDay();const ok=done(it,D);
+ let extra='';
+ if(it.type==='gtg'&&!S.settings.gtgDays.includes(dw)){
+  return `<div class="item"><div class="chk" style="border-style:dashed"></div><div class="body"><div class="tt">${it.t}</div><div class="rest">Descanso total hoje.</div></div></div>`}
+ if(it.type==='squat'){
+  const cur=isToday()?new Date().getHours():-1;
+  extra=`<div class="hours">${workHours().map(h=>`<button data-sq="${h}" class="${D.sq.includes(h)?'on':''}${h===cur?' cur':''}">${pad(h)}h</button>`).join('')}</div>
+  <div class="ds" style="margin-top:6px">${D.sq.length*10} reps · ${D.sq.length}/${workHours().length} horas</div>`}
+ if(it.type==='gtg'){
+  extra=`<div class="btns"><button data-g="Swing|10">Swing ×10</button><button data-g="Swing 1 mão|10">Swing 1M ×10</button><button data-g="Press|5/lado">Press ×5/lado</button><button data-g="Goblet|8">Goblet ×8</button><button data-g="TGU|1/lado">TGU ×1/lado</button></div>
+  <div class="ds" style="margin-top:6px">${D.gtg.length}/${S.settings.gtgSets} séries</div>
+  ${D.gtg.length?`<div class="log">${D.gtg.map((g,i)=>`<span data-gdel="${i}" title="Tocar para remover">${g.t} ${g.ex} ${g.r} ✕</span>`).join('')}</div>`:''}
+  <div class="bar"><i style="width:${Math.min(100,D.gtg.length/S.settings.gtgSets*100)}%;background:var(--acc2)"></i></div>`}
+ if(it.type==='aer'){const w=weekAer(view);
+  const planned=S.settings.aerDays.includes(dw);
+  extra=`<div class="ds" style="margin-top:4px">${w}/2 esta semana ${planned?'· <span class="pill">planeado hoje</span>':''}</div>`}
+ return `<div class="item${ok?' done':''}"><button class="chk" data-c="${it.id}" aria-label="Marcar">✓</button>
+ <div class="body"><div class="tt">${it.t}</div><div class="ds">${it.d}</div>${extra}
+ <button class="info" data-i="${it.id}"><span class="g g${it.g}">${it.g}</span>objetivo e evidência</button>
+ <div class="more" id="m-${it.id}"><b>Objetivo:</b> ${it.obj}<br><br>${it.ev}${it.mech?`<br><span class="note">Mecanismo invocado: grau ${it.mech}.</span>`:''}${it.warn?`<div class="ev"><div class="warn">⚠ ${it.warn}</div></div>`:''}</div></div></div>`}
+function weekAer(d){const x=new Date(d);const dw=(x.getDay()+6)%7;x.setDate(x.getDate()-dw);let n=0;
+ for(let i=0;i<7;i++){const k=key(x);if(S.days[k]&&S.days[k].c.aer)n++;x.setDate(x.getDate()+1)}return n}
+
+/* ---------- jejum ---------- */
+function fasting(){
+ const now=new Date();const m=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+ const o=hm(S.settings.winO),c=hm(S.settings.winC);const fastLen=(1440-(c-o));
+ let st,rem,elapsed,meta,p;
+ if(m>=o&&m<c){rem=c-m;st='🍽️ Janela alimentar aberta';meta=`Fecha às ${S.settings.winC} · ${fmt(c-o)} de janela`;p=(m-o)/(c-o);$('fBar').style.background='var(--acc2)'}
+ else{elapsed=m>=c?m-c:m+1440-c;rem=fastLen-elapsed;st='⏳ Em jejum';meta=`${fmt(elapsed)} decorridas de ${fmt(fastLen)} · abre às ${S.settings.winO}`;p=elapsed/fastLen;$('fBar').style.background='var(--acc)'}
+ $('fState').textContent=st;$('fTime').textContent=fmt(rem,true);$('fMeta').textContent=meta;$('fBar').style.width=Math.min(100,p*100)+'%'}
+function fmt(min,sec){const h=Math.floor(min/60),mm=Math.floor(min%60);if(sec){const s=Math.floor((min*60)%60);return pad(h)+':'+pad(mm)+':'+pad(s)}return h+'h'+(mm?pad(mm):'')}
+
+/* ---------- eventos Hoje ---------- */
+$('list').addEventListener('click',e=>{
+ const b=e.target.closest('button,span[data-gdel]');if(!b)return;const D=day(key(view));
+ if(b.dataset.c){const id=b.dataset.c;D.c[id]=!D.c[id];
+  const it=ITEMS.find(i=>i.id===id);if(!D.c[id]&&it.type==='squat'){D.c[id]=false}
+  save();render();if(D.c[id])toast('✓ '+it.t.split('·')[0].split('—')[0].trim());return}
+ if(b.dataset.sq){const h=+b.dataset.sq;const i=D.sq.indexOf(h);i>=0?D.sq.splice(i,1):D.sq.push(h);save();render();return}
+ if(b.dataset.g){const[ex,r]=b.dataset.g.split('|');const n=new Date();D.gtg.push({ex,r,t:pad(n.getHours())+':'+pad(n.getMinutes())});save();render();toast('Série '+D.gtg.length+' registada');return}
+ if(b.dataset.gdel){D.gtg.splice(+b.dataset.gdel,1);save();render();return}
+ if(b.dataset.i){$('m-'+b.dataset.i).classList.toggle('open')}
+});
+$('prevD').onclick=()=>{view.setDate(view.getDate()-1);render()};
+$('nextD').onclick=()=>{if(isToday())return;view.setDate(view.getDate()+1);render()};
+$('todayD').onclick=()=>{view=new Date();view.setHours(12,0,0,0);render()};
+
+/* ---------- histórico ---------- */
+function renderHist(){
+ const today=new Date();today.setHours(12,0,0,0);
+ // streak
+ let st=0;const x=new Date(today);const s0=score(x);if(!s0||s0.p<.8)x.setDate(x.getDate()-1);
+ for(;;){const s=score(x);if(s&&s.p>=.8){st++;x.setDate(x.getDate()-1)}else break}
+ $('stStreak').textContent=st;
+ let sum=0;const y=new Date(today);for(let i=0;i<7;i++){const s=score(y);sum+=s?s.p:0;y.setDate(y.getDate()-1)}
+ $('stAvg').textContent=Math.round(sum/7*100)+'%';
+ $('stAer').textContent=weekAer(today)+'/2';
+ // heat
+ let h=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d=>`<div class="lbl">${d}</div>`).join('');
+ const start=new Date(today);start.setDate(start.getDate()-((today.getDay()+6)%7)-28);
+ for(let i=0;i<35;i++){const d=new Date(start);d.setDate(start.getDate()+i);
+  if(d>today){h+='<div style="opacity:.25"></div>';continue}
+  const s=score(d);const p=s?s.p:0;
+  const col=p===0?'var(--card2)':p<.5?'#3e6f55':p<.8?'#5aa47a':'#7cc79a';
+  h+=`<div style="background:${col};${key(d)===key(today)?'outline:2px solid var(--acc);':''}" data-k="${key(d)}">${d.getDate()}</div>`}
+ $('heat').innerHTML=h;
+ // adesão
+ let a='';ITEMS.forEach(it=>{let n=0,t=0;const d=new Date(today);
+  for(let i=0;i<14;i++){if(applies(it,d)&&!(it.type==='aer')){t++;const D=S.days[key(d)];if(D&&done(it,D))n++}d.setDate(d.getDate()-1)}
+  if(it.type==='aer'){let w=0;const d2=new Date(today);for(let i=0;i<14;i++){const D=S.days[key(d2)];if(D&&D.c.aer)w++;d2.setDate(d2.getDate()-1)}
+   a+=`<tr><td>${it.t}</td><td>${w}/4 sessões</td></tr>`;return}
+  a+=`<tr><td>${it.t}</td><td>${t?Math.round(n/t*100):0}%</td></tr>`});
+ $('adh').innerHTML=a;
+ // volume
+ let sq=0,gs=0,sw=0;const d=new Date(today);
+ for(let i=0;i<7;i++){const D=S.days[key(d)];if(D){sq+=D.sq.length*10;gs+=D.gtg.length;D.gtg.forEach(g=>{if(/Swing/.test(g.ex))sw+=parseInt(g.r)||0})}d.setDate(d.getDate()-1)}
+ $('vol').innerHTML=`<tr><td>Agachamentos</td><td>${sq} reps</td></tr><tr><td>Séries GtG</td><td>${gs}</td></tr><tr><td>Swings</td><td>${sw} reps</td></tr><tr><td>Sessões aeróbias</td><td>${weekAer(today)}</td></tr>`;
+}
+$('heat').addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;const[y,m,dd]=k.split('-').map(Number);view=new Date(y,m-1,dd,12);tab('hoje')});
+
+/* ---------- evidência ---------- */
+function renderEv(){$('evList').innerHTML=ITEMS.map(it=>`<div class="card ev"><h3><span class="g g${it.g}">${it.g}</span>${it.t}</h3>
+ <p>${it.ev}</p>${it.mech?`<p class="note">Mecanismo invocado (${it.obj.replace(/\.$/,'')}): grau ${it.mech}.</p>`:''}
+ ${it.warn?`<div class="warn">⚠ ${it.warn}</div>`:''}${it.refs.map(r=>`<div class="ref">${r}</div>`).join('')}</div>`).join('')}
+
+/* ---------- definições ---------- */
+function renderCfg(){const s=S.settings;
+ $('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;
+ const dd=(arr,id)=>{$(id).innerHTML=[1,2,3,4,5,6,0].map(i=>`<button data-d="${i}" class="${arr.includes(i)?'on':''}">${DAYN[i]}</button>`).join('')};
+ dd(s.aerDays,'cAer');dd(s.gtgDays,'cGtg');
+ const bmi=s.w/((s.h/100)**2);
+ $('protNote').innerHTML=`IMC ${bmi.toFixed(1)} kg/m². Proteína para manter/ganhar massa magra com treino de força: <b>${Math.round(s.w*1.6)} g/dia</b> (1,6 g/kg; intervalo 1,2–2,2) → ≈<b>${Math.round(s.w*0.8)} g por refeição</b> em 2 refeições. Creatina 3–5 g/dia (≈0,05–0,08 g/kg).`}
+function bindCfg(){
+ [['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number]].forEach(([id,k,f])=>{
+  $(id).addEventListener('change',e=>{let v=f(e.target.value);if(k==='jobS'||k==='jobE')v=v.slice(0,2)+':00';S.settings[k]=v;save();renderCfg();render()})});
+ [['cAer','aerDays'],['cGtg','gtgDays']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const d=e.target.dataset.d;if(d==null)return;const n=+d;const a=S.settings[k];const i=a.indexOf(n);i>=0?a.splice(i,1):a.push(n);save();renderCfg();render()}));
+ $('exp').onclick=()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ritmo-backup-'+key(new Date())+'.json';try{a.click()}catch(e){}
+ try{navigator.clipboard.writeText(JSON.stringify(S)).then(()=>toast('Backup copiado (e descarregado)')).catch(()=>{})}catch(e){}};
+ $('imp').onclick=()=>$('impF').click();
+ $('impF').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.days)throw 0;S=o;S.settings=Object.assign({},DEF.settings,o.settings);save();renderCfg();render();toast('Backup importado')}catch(err){toast('Ficheiro inválido')}})};
+ $('rst').onclick=()=>{if(confirmReset()){S=JSON.parse(JSON.stringify(DEF));save();renderCfg();render();toast('Dados apagados')}};
+}
+let rstArm=0;function confirmReset(){if(Date.now()-rstArm<3000)return true;rstArm=Date.now();toast('Toca outra vez para confirmar');return false}
+bindCfg();
+
+/* ---------- navegação ---------- */
+function tab(t){document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+t));
+ document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ if(t==='hoje')render();if(t==='hist')renderHist();if(t==='ev')renderEv();if(t==='cfg')renderCfg();window.scrollTo(0,0)}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+let tt;function toast(m){const e=$('toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1600)}
+
+render();
+setInterval(()=>{if($('s-hoje').classList.contains('on')){fasting()}},1000);
+let lastMin=new Date().getMinutes();
+setInterval(()=>{const m=new Date().getMinutes();if(m!==lastMin){lastMin=m;if(m===0&&$('s-hoje').classList.contains('on'))render()}},5000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
+</script>
+</body>
+</html>
