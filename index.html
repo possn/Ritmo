@@ -321,7 +321,7 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
     <div class="note" id="protNote" style="padding-top:8px"></div>
   </div>
   <div class="card">
-    <div class="frow">Modo<select id="cMode"><option value="12">Jejum noturno 12 h + pequeno-almoço diário</option><option value="16">16:8 (janela 12–20h)</option><option value="custom">Personalizado</option></select></div>
+    <div class="frow">Modo<select id="cMode" style="max-width:62%"><option value="12">12 h noturno + pequeno-almoço</option><option value="16">16:8 (12–20h)</option><option value="custom">Personalizado</option></select></div>
     <div class="frow">Janela alimentar abre<input type="time" id="cWO"></div>
     <div class="frow">Janela alimentar fecha<input type="time" id="cWC"></div>
     <div class="frow">Início do trabalho<input type="time" id="cJS" step="3600"></div>
@@ -334,7 +334,7 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
     <div style="font-weight:600;margin:16px 0 8px">Dias de GtG kettlebell</div><div class="days" id="cGtg"></div>
     <div style="font-weight:600;margin:16px 0 8px">Dias com pequeno-almoço</div><div class="days" id="cBf"></div>
     <div class="frow" style="margin-top:8px">Hora do pequeno-almoço<input type="time" id="cBT"></div>
-    <div class="note">Nesses dias a janela abre ao pequeno-almoço (jejum ≈12 h). Nos outros mantém-se o 16:8.</div>
+    <div class="note">Nesses dias a janela abre à hora do pequeno-almoço. Nos dias desmarcados abre à hora de "Janela alimentar abre".</div>
     <div class="frow" style="margin-top:8px">Séries GtG/dia<input type="number" id="cGS" min="1" max="40"></div>
     <div class="frow">Passos/dia<input type="number" id="cSt" min="1000" max="30000" step="500"></div>
   </div>
@@ -345,7 +345,7 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
   </div>
   <div class="card">
     <div style="font-weight:600;margin-bottom:8px">Hábito próprio</div>
-    <div class="inl"><label>Emoji<input type="text" id="nE" maxlength="4" value="⭐" style="width:60px;text-align:center"></label><label>Nome<input type="text" id="nT" placeholder="ex.: Mobilidade 5 min" style="width:190px"></label><label>Bloco<select id="nB"></select></label></div>
+    <div class="inl"><label>Emoji <input type="text" id="nE" name="ritmo-emoji" autocomplete="off" maxlength="4" value="⭐" style="width:60px;text-align:center"></label><label>Hábito<input type="text" id="nT" name="ritmo-habito" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" placeholder="ex.: Mobilidade 5 min" style="width:190px"></label><label>Bloco<select id="nB"></select></label></div>
     <button class="btn" id="nAdd" style="margin-top:12px">Adicionar</button>
     <div id="cCustom" style="margin-top:6px"></div>
   </div>
@@ -393,7 +393,8 @@ const PMAP=Object.fromEntries(PORT.map(p=>[p.id,p]));
 const BLOCKS=[
  {id:'manha',e:'☀️',name:'Manhã',sub:'jejum e ativação',from:5,to:12},
  {id:'trab',e:'💼',name:'Trabalho',sub:'movimento contínuo',from:'jobS',to:'jobE'},
- {id:'almoco',e:'🥗',name:'Almoço',sub:'abre a janela',from:'winO',to:14},
+ {id:'dia',e:'🍎',name:'Ao longo do dia',sub:'snacks',from:'open',to:'winC'},
+ {id:'almoco',e:'🥗',name:'Almoço',sub:'',from:12,to:14},
  {id:'tarde',e:'🌇',name:'Tarde',sub:'fim de expediente',from:17,to:20},
  {id:'jantar',e:'🌙',name:'Jantar',sub:'fecha a janela',from:18,to:'winC'}
 ];
@@ -421,13 +422,13 @@ const ITEMS=[
   refs:['Momma H et al. Br J Sports Med 2022;56:755–63.']},
  {id:'pqa',b:'manha',e:'🥣',c:'var(--yellow)',type:'meal',m:'p',t:'Pequeno-almoço',d:'Skyr + aveia/cereais integrais + frutos secos (+ frutos vermelhos)',
   obj:'Acrescentar uma refeição proteica em 3 dias/semana, melhorar a distribuição da proteína e a ingestão de cereais integrais e frutos secos.',g:'B',
-  ev:'Distribuir a proteína por 3 refeições aumentou a síntese proteica muscular de 24 h em ~25% face a concentrá-la ao jantar. O benefício metabólico do jejum 16:8 nos RCTs deveu-se sobretudo à redução calórica; com IMC ~20, 3 janelas mais longas por semana não anulam o protocolo. Cereais integrais e frutos secos associam-se a menor mortalidade em meta-análises de coortes.',
+  ev:'Distribuir a proteína por 3 refeições aumentou a síntese proteica muscular de 24 h em ~25% face a concentrá-la ao jantar. Nos RCTs, o benefício metabólico do jejum 16:8 deveu-se sobretudo à redução calórica, que com IMC ~20 não é um objetivo; um jejum noturno de ~12 h com pequeno-almoço proteico preserva o que tem melhor suporte (não comer à noite) e melhora a ingestão proteica. Cereais integrais e frutos secos associam-se a menor mortalidade em meta-análises de coortes.',
   refs:['Mamerow MM et al. J Nutr 2014;144:876–80 — distribuição proteica.','Liu D et al. N Engl J Med 2022;386:1495–504 — TRE vs restrição calórica.','Aune D et al. BMJ 2016;353:i2716 — cereais integrais.']},
  {id:'almoco',b:'almoco',e:'🍽️',c:'var(--green)',type:'meal',m:'a',t:'Almoço',d:'Proteína + sopa + azeite virgem extra',
   obj:'Proteína de alta qualidade, fibra/hidratos de baixo IG, ácido oleico (SIRT1).',g:'A',
   ev:'Dieta mediterrânica suplementada com azeite VE reduziu eventos CV major (PREDIMED). A ativação da SIRT1 por ácido oleico via PLIN5 é celular/animal. Proteína: ~1,6 g/kg/dia maximiza ganhos de massa magra com treino de força.',
   mech:'D',refs:['Estruch R et al. N Engl J Med 2018;378:e34 (PREDIMED).','Najt CP et al. Mol Cell 2020;77:810–24 — MUFA→SIRT1.','Morton RW et al. Br J Sports Med 2018;52:376–84 — proteína.']},
- {id:'fruta',b:'almoco',e:'🫐',c:'var(--purple)',t:'Fruta com polifenóis',d:'Frutos vermelhos ou maçã com casca · conta com o botão 🍎 do Agora',
+ {id:'fruta',b:'dia',e:'🫐',c:'var(--purple)',t:'Fruta com polifenóis',d:'Frutos vermelhos ou maçã com casca · regista com 🍎 no cartão Agora',
   obj:'Fisetina, quercetina (inibição CD38) — "STACs".',g:'B',
   ev:'Maior consumo de fruta associa-se a menor mortalidade e doença CV (meta-análise de coortes). Efeitos senolíticos (fisetina) e inibição de CD38 (quercetina/apigenina) são de ratinho/in vitro, com doses muito superiores às alimentares.',
   mech:'D',refs:['Aune D et al. Int J Epidemiol 2017;46:1029–56.','Yousefzadeh MJ et al. EBioMedicine 2018;36:18–28 — fisetina (ratinho).','Escande C et al. Diabetes 2013;62:1084–93 — CD38 (ratinho).']},
@@ -444,11 +445,11 @@ const ITEMS=[
   obj:'Volume de atividade diária de base, além do treino estruturado.',g:'B',
   ev:'Meta-análise de 15 coortes (~47 000 adultos): mais passos associam-se a menor mortalidade, com plateau ~8 000–10 000/dia abaixo dos 60 anos e ~6 000–8 000 acima.',
   refs:['Paluch AE et al. Lancet Public Health 2022;7:e219–28.']},
- {id:'jantar',b:'jantar',e:'🍲',c:'var(--green)',type:'meal',m:'j',t:'Última refeição',d:'Proteína + sopa + azeite · antes das 20:00',
+ {id:'jantar',b:'jantar',e:'🍲',c:'var(--green)',type:'meal',m:'j',t:'Jantar',d:'Proteína + sopa + azeite · antes do fecho da janela',
   obj:'Densidade nutricional limpa.',g:'A',
   ev:'Mesma base que o almoço. Com apenas 2 refeições, o alvo proteico diário tem de caber nelas.',
   refs:['Morton RW et al. Br J Sports Med 2018;52:376–84.']},
- {id:'nozes',b:'jantar',e:'🌰',c:'var(--brown)',t:'Frutos secos',d:'1 mão-cheia: nozes, amêndoas, 1–2 castanhas-do-pará',
+ {id:'nozes',b:'dia',e:'🌰',c:'var(--brown)',t:'Frutos secos',d:'1 mão-cheia/dia: nozes, amêndoas, 1–2 castanhas-do-pará · regista com 🌰 no Agora',
   obj:'ALA, precursores de urolitina A, selénio.',g:'B',
   ev:'≈28 g/dia associa-se a menor mortalidade e doença CV (meta-análise); RCT PREDIMED com frutos secos. A conversão de elagitaninos em urolitina A depende do metabotipo da microbiota.',
   warn:'Castanha-do-pará: 1–2/dia chega; suplementar selénio não mostrou benefício (SELECT) e o excesso é tóxico.',
@@ -546,8 +547,9 @@ function render(){
  html+=nowCard(D);
  if(D.off)html+=`<div class="offb">🏖️ <b>Dia livre</b> — não conta para a adesão nem quebra a sequência.</div>`;
  BLOCKS.forEach(B=>{
-  const f=typeof B.from==='number'?B.from:hr(S.settings[B.from]),to=typeof B.to==='number'?B.to:hr(S.settings[B.to]);
-  const now=isToday()&&curH>=f&&curH<to;
+  const H=v=>typeof v==='number'?v:v==='open'?Math.floor(openMin(view)/60):hr(S.settings[v]);
+  let f=H(B.from),to=H(B.to);if(B.id==='trab'&&D.urg){const wh=workHours(D);f=wh[0];to=(wh[wh.length-1]+1)%24||24}
+  const now=B.id!=='dia'&&isToday()&&curH>=f&&curH<to;
   if(!ACTIVE().some(i=>i.b===B.id))return;
   html+=`<div class="sec"><h2>${B.e} ${B.name}</h2><span class="h">${pad(f)}–${pad(to)}h</span>${now?'<span class="now">agora</span>':''}</div><div class="group">`;
   ACTIVE().filter(i=>i.b===B.id).forEach(it=>html+=itemHTML(it,D));
@@ -928,7 +930,7 @@ function renderCorpo(){
  {const r=le8();const[lab,col]=r.score==null?['Sem dados','var(--mut)']:r.score>=80?['Alto',"var(--green)"]:r.score>=50?['Moderado','var(--orange)']:['Baixo','var(--red)'];
   $('le8g').innerHTML=gauge(r.score,`${lab} · ${r.n}/8 métricas`,col);
   $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'responde ao questionário MEPA (abaixo)':n.includes('Atividade')?'escreve o PAI do relógio no campo acima':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
- if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['⌚','Exercício semanal (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
+ if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
  if(!$('lK').options.length)$('lK').innerHTML=LABS.map(([k,u])=>`<option value="${k}">${k} (${u})</option>`).join('');
  const t=key(new Date());if(!$('bD').value)$('bD').value=t;if(!$('lD').value)$('lD').value=t;
  const b=[...S.body].sort((x,y)=>x.d<y.d?-1:1);
@@ -984,7 +986,7 @@ $('cMode').addEventListener('change',e=>{const v=e.target.value;S.settings.mode=
  if(v==='16'){S.settings.winO='12:00';S.settings.winC='20:00';S.settings.bfDays=[]}
  save();renderCfg();toast('Modo atualizado')});
 $('cItems').addEventListener('click',e=>{const id=e.target.dataset.hide;if(!id)return;const h=S.settings.hidden;const i=h.indexOf(id);i>=0?h.splice(i,1):h.push(id);save();renderCfg()});
-$('nAdd').onclick=()=>{const t=$('nT').value.trim();if(!t){toast('Dá um nome ao hábito');return}S.custom.push({id:'c'+Date.now().toString(36),t,e:$('nE').value.trim()||'⭐',b:$('nB').value});$('nT').value='';save();renderCfg();toast('✓ Hábito adicionado')};
+$('nAdd').onclick=()=>{const t=$('nT').value.trim();if(t.length<3){toast('Escreve o hábito (≥3 letras)');return}S.custom.push({id:'c'+Date.now().toString(36),t,e:$('nE').value.trim()||'⭐',b:$('nB').value});$('nT').value='';save();renderCfg();toast('✓ Hábito adicionado')};
 let cdelArm='';$('cCustom').addEventListener('click',e=>{const id=e.target.dataset.cdel;if(!id)return;if(cdelArm!==id){cdelArm=id;toast('Toca outra vez para apagar');setTimeout(()=>cdelArm='',3000);return}S.custom=S.custom.filter(c=>c.id!==id);save();renderCfg()});
 $('csv').onclick=()=>{const items=ALL();const hdr=['data','adesao_pct'].concat(items.map(i=>'item_'+i.id),['agachamentos','gtg_series','gtg_tonelagem_kg','proteina_g','aerobio_mod_min','aerobio_vig_min','passos','deitar','acordar','sono_min','primeira_refeicao','ultima_refeicao','tipo_dia','notas']);
  const rows=Object.keys(S.days).sort().map(k=>{const D=norm(S.days[k]);const[y,m,d]=k.split('-').map(Number);const sc=score(new Date(y,m-1,d,12));
