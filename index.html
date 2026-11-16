@@ -102,7 +102,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .kv{font-size:14px;color:var(--tx2);margin-top:8px}
 .kv b{font-family:var(--round)}
 .rest{color:var(--indigo);font-size:14px;font-weight:600;margin-top:2px}
-input[type=time],input[type=number],input[type=date],select{min-height:40px;display:block;background:var(--fill);color:var(--tx);border:none;border-radius:10px;padding:8px 10px;font:600 16px var(--round);width:118px;-webkit-appearance:none;appearance:none}
+input[type=time],input[type=number],input[type=date],input[type=text],select{min-height:40px;display:block;background:var(--fill);color:var(--tx);border:none;border-radius:10px;padding:8px 10px;font:600 16px var(--round);width:118px;-webkit-appearance:none;appearance:none}
 .inl{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;align-items:center}
 .inl label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut);font-weight:600}
 /* tab bar */
@@ -154,6 +154,16 @@ td:last-child{text-align:right;font-family:var(--round);font-weight:700;font-var
 .lrow td:first-child{font-weight:600}
 .del{border:none;background:none;color:var(--mut);font-size:15px;padding:0 0 0 8px}
 select{width:auto;min-width:150px}
+.row.done:not(.open) .x,.row.done:not(.open) .info,.row.done:not(.open) .more{display:none}
+.row .sum{display:none;color:var(--green);font-size:14px;font-weight:600;margin-top:1px}
+.row.done:not(.open) .sum{display:block}.row.done:not(.open) .ds{display:none}
+.row .tt{cursor:pointer}
+.tg{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:.5px solid var(--sep);font-size:15px;gap:10px}
+.tg:last-child{border-bottom:none}
+.sw{width:50px;height:30px;border-radius:15px;background:var(--fill2);border:none;position:relative;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.sw.on{background:var(--green)}.sw.on::after{left:22px}
+.kgs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}.kgs::-webkit-scrollbar{display:none}.kgs .chip{flex:none;padding:5px 10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -258,10 +268,22 @@ select{width:auto;min-width:150px}
     <div class="frow">Passos/dia<input type="number" id="cSt" min="1000" max="30000" step="500"></div>
   </div>
   <div class="card">
+    <div style="font-weight:600;margin-bottom:4px">Itens do protocolo</div>
+    <div class="note" style="margin-bottom:6px">Desliga o que não quiseres seguir. Os dados antigos mantêm-se.</div>
+    <div id="cItems"></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:8px">Hábito próprio</div>
+    <div class="inl"><label>Emoji<input type="text" id="nE" maxlength="4" value="⭐" style="width:60px;text-align:center"></label><label>Nome<input type="text" id="nT" placeholder="ex.: Mobilidade 5 min" style="width:190px"></label><label>Bloco<select id="nB"></select></label></div>
+    <button class="btn" id="nAdd" style="margin-top:12px">Adicionar</button>
+    <div id="cCustom" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
     <div style="font-weight:600;margin-bottom:10px">Dados (só neste dispositivo)</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="exp">Exportar backup</button>
       <button class="btn" id="imp">Importar</button>
+      <button class="btn" id="csv">Exportar CSV</button>
       <button class="btn dan" id="rst">Apagar tudo</button>
     </div>
     <input type="file" id="impF" accept="application/json" hidden>
@@ -360,16 +382,18 @@ const ITEMS=[
   warn:'Com IMC ≈20, a prioridade é proteger massa magra: proteína suficiente + força.',
   refs:['Lowe DA et al. JAMA Intern Med 2020;180:1491–9 (TREAT).','Liu D et al. N Engl J Med 2022;386:1495–504.','Sutton EF et al. Cell Metab 2018;27:1212–21 (eTRF).']}
 ];
+const ALL=()=>ITEMS.concat((S.custom||[]).map(c=>({id:c.id,b:c.b,e:c.e,c:'var(--brown)',t:c.t,d:'Hábito próprio',custom:1})));
+const ACTIVE=()=>ALL().filter(i=>!(S.settings.hidden||[]).includes(i.id));
 const DAYN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 /* ---------- estado ---------- */
 const KEY='ritmo.v1';
-const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16},days:{},body:[],labs:[]};
+const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16,hidden:[]},days:{},body:[],labs:[],custom:[]};
 function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j:0};D.pf=D.pf||{a:[],j:[]};D.aer=D.aer||{m:0,v:0};D.sl=D.sl||{bed:'',wake:''};D.steps=D.steps||0;D.meal=D.meal||{first:'',last:''};return D}
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
  if(!S)S=JSON.parse(JSON.stringify(DEF));
- S.settings=Object.assign({},DEF.settings,S.settings||{});S.days=S.days||{};S.body=S.body||[];S.labs=S.labs||[];Object.values(S.days).forEach(norm)}
+ S.settings=Object.assign({},DEF.settings,S.settings||{});S.days=S.days||{};S.body=S.body||[];S.labs=S.labs||[];S.custom=S.custom||[];Object.values(S.days).forEach(norm)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
 
@@ -406,7 +430,7 @@ function done(it,D){
   case 'close':return !!D.meal.last&&hm(D.meal.last)<=hm(S.settings.winC);
  }return false}
 function score(d){const D=S.days[key(d)];if(!D)return null;
- const ap=ITEMS.filter(i=>applies(i,d));const n=ap.filter(i=>done(i,D)).length;return{n,t:ap.length,p:ap.length?n/ap.length:0}}
+ const ap=ACTIVE().filter(i=>applies(i,d));const n=ap.filter(i=>done(i,D)).length;return{n,t:ap.length,p:ap.length?n/ap.length:0}}
 function moveScore(D,d){const parts=[Math.min(1,D.sq.length/Math.max(1,workHours().length)),Math.min(1,D.steps/S.settings.stepGoal)];
  if(S.settings.gtgDays.includes(d.getDay()))parts.push(Math.min(1,D.gtg.length/S.settings.gtgSets));
  if(aerSess(D))parts.push(1);return parts.reduce((a,b)=>a+b,0)/parts.length}
@@ -428,14 +452,15 @@ function render(){
  BLOCKS.forEach(B=>{
   const f=typeof B.from==='number'?B.from:hr(S.settings[B.from]),to=typeof B.to==='number'?B.to:hr(S.settings[B.to]);
   const now=isToday()&&curH>=f&&curH<to;
+  if(!ACTIVE().some(i=>i.b===B.id))return;
   html+=`<div class="sec"><h2>${B.e} ${B.name}</h2><span class="h">${pad(f)}–${pad(to)}h</span>${now?'<span class="now">agora</span>':''}</div><div class="group">`;
-  ITEMS.filter(i=>i.b===B.id).forEach(it=>html+=itemHTML(it,D));
+  ACTIVE().filter(i=>i.b===B.id).forEach(it=>html+=itemHTML(it,D));
   html+='</div>'});
  $('list').innerHTML=html;
  const nd=Object.keys(S.days).length,since=S.lastBackup?(Date.now()-S.lastBackup)/864e5:1e9;
  $('banner').innerHTML=(nd>=3&&since>=14)?`<div class="banner">💾<div><b>Faz um backup</b><span class="note">${S.lastBackup?'Último há '+Math.floor(since)+' dias':'Ainda não fizeste nenhum'}. Os dados só existem neste iPhone.</span></div><button class="btn" id="bkNow">Backup</button></div>`:'';
  const bk=$('bkNow');if(bk)bk.onclick=()=>$('exp').click();
- const sc=score(view)||{n:0,t:ITEMS.filter(i=>applies(i,view)).length,p:0};
+ const sc=score(view)||{n:0,t:ACTIVE().filter(i=>applies(i,view)).length,p:0};
  const pg=protDay(D);const mv=moveScore(D,view);
  drawRings([sc.p,pg/protT(),mv]);
  $('r1v').innerHTML=`${sc.n}<small>/${sc.t}</small>`;
@@ -455,7 +480,7 @@ function itemHTML(it,D){
   x=`<div class="hours">${wh.map(h=>`<button data-sq="${h}" class="${D.sq.includes(h)?'on':''}${h===cur?' cur':''}">${h}</button>`).join('')}</div>
   <div class="kv"><b>${D.sq.length*10}</b> agachamentos · ${D.sq.length}/${wh.length} horas</div>`}
  if(it.type==='gtg'){
-  x=`<div class="mt"><span class="note">Carga</span>${[8,12,16,20,24,28,32].map(k=>`<button class="chip${k==S.settings.gtgKg?' pri':''}" data-kg="${k}">${k} kg</button>`).join('')}</div>
+  x=`<div class="mt kgs"><span class="note">Carga</span>${[8,12,16,20,24,28,32].map(k=>`<button class="chip${k==S.settings.gtgKg?' pri':''}" data-kg="${k}">${k} kg</button>`).join('')}</div>
   <div class="chips">${[['Swing','10'],['Swing 1 mão','10'],['Press','5/lado'],['Goblet','8'],['TGU','1/lado']].map(([e,r])=>`<button class="chip" data-g="${e}|${r}">＋ ${e} <small>×${r}</small></button>`).join('')}</div>
   ${D.gtg.length?`<div class="tags">${D.gtg.map((g,i)=>`<button class="tag" style="background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)" data-gdel="${i}">${g.t} ${g.ex}${g.kg?' '+g.kg+'kg':''} ✕</button>`).join('')}</div>`:''}
   <div class="kv"><b>${D.gtg.length}</b>/${S.settings.gtgSets} séries · ${gtgTon(D)} kg de tonelagem</div>
@@ -478,10 +503,20 @@ function itemHTML(it,D){
  if(it.type==='steps'){
   x=`<div class="inl"><input type="number" inputmode="numeric" min="0" step="100" data-steps placeholder="0" value="${D.steps||''}"><span class="note">de ${S.settings.stepGoal.toLocaleString('pt-PT')}</span></div>
   <div class="prog"><i style="width:${Math.min(100,D.steps/S.settings.stepGoal*100)}%;background:var(--blue)"></i></div>`}
- return `<div class="row${ok?' done':''}">${icon}<div class="rb"><div class="tt">${it.t}</div><div class="ds">${it.d}</div>${x}
- <button class="info" data-i="${it.id}"><span class="g g${it.g}">${it.g}</span>Porquê?</button>
- <div class="more" id="m-${it.id}"><b>Objetivo:</b> ${it.obj}<br><br>${it.ev}${it.mech?`<br><span class="note">Mecanismo invocado: grau ${it.mech}.</span>`:''}${it.type==='meal'?'<br><br><b>Sem balança:</b> 1 palma = área e espessura da palma da mão sem dedos ≈ 100–120 g de carne/peixe cozinhado ≈ 25–30 g de proteína. As estimativas têm erro de ±25% — servem para ver padrões, não para precisão.':''}${it.warn?`<div class="warn">⚠️ ${it.warn}</div>`:''}</div>
+ return `<div class="row${ok?' done':''}${OPEN.has(it.id)?' open':''}" data-row="${it.id}">${icon}<div class="rb"><div class="tt" data-tog="${it.id}">${it.t}</div><div class="ds">${it.d}</div><div class="sum">${ok?summary(it,D):''}</div><div class="x">${x}</div>
+ ${it.custom?'':`<button class="info" data-i="${it.id}"><span class="g g${it.g}">${it.g}</span>Porquê?</button>`}
+ ${it.custom?'':`<div class="more" id="m-${it.id}"><b>Objetivo:</b> ${it.obj}<br><br>${it.ev}${it.mech?`<br><span class="note">Mecanismo invocado: grau ${it.mech}.</span>`:''}${it.type==='meal'?'<br><br><b>Sem balança:</b> 1 palma = área e espessura da palma da mão sem dedos ≈ 100–120 g de carne/peixe cozinhado ≈ 25–30 g de proteína. As estimativas têm erro de ±25% — servem para ver padrões, não para precisão.':''}${it.warn?`<div class="warn">⚠️ ${it.warn}</div>`:''}</div>`}
  </div><button class="chk" data-c="${it.id}" aria-label="Marcar ${it.t}" aria-pressed="${ok}">✓</button></div>`}
+const OPEN=new Set();
+function summary(it,D){switch(it.type){
+ case 'squat':return `✓ ${D.sq.length*10} agachamentos`;
+ case 'gtg':return `✓ ${D.gtg.length} séries · ${gtgTon(D)} kg`;
+ case 'meal':return `✓ ≈${mealG(D,it.m)} g proteína${it.m==='a'&&D.meal.first?' · '+D.meal.first:''}`;
+ case 'sleep':{const d=sleepDur(D);return d!=null?`✓ ${fmt(d)} · ${D.sl.bed}–${D.sl.wake}`:'✓ Feito'}
+ case 'steps':return `✓ ${D.steps.toLocaleString('pt-PT')} passos`;
+ case 'aer':return `✓ ${D.aer.m} min mod · ${D.aer.v} min vig`;
+ case 'close':return D.meal.last?`✓ Fechou às ${D.meal.last}`:'✓ Feito';
+ default:return '✓ Feito'}}
 function mealTime(D,k,lbl,btn){return D.meal[k]
  ?`<div class="mt"><span class="note">⏱️ ${lbl}</span><input type="time" data-mtv="${k}" value="${D.meal[k]}" style="width:110px"><button class="del" data-mtx="${k}" aria-label="Apagar hora">✕</button></div>`
  :`<div class="mt"><button class="chip" data-mt="${k}">⏱️ ${btn}</button><span class="note">regista a hora real</span></div>`}
@@ -514,8 +549,9 @@ function fasting(){
 
 /* ---------- eventos ---------- */
 $('list').addEventListener('click',e=>{
+ const tg=e.target.closest('[data-tog]');if(tg){const id=tg.dataset.tog;OPEN.has(id)?OPEN.delete(id):OPEN.add(id);const r=tg.closest('.row');r&&r.classList.toggle('open');return}
  const b=e.target.closest('button');if(!b)return;const D=day(key(view));const ds=b.dataset;
- if(ds.c){D.c[ds.c]=!D.c[ds.c];save();render();if(D.c[ds.c])toast('✓ '+ITEMS.find(i=>i.id===ds.c).t);return}
+ if(ds.c){D.c[ds.c]=!D.c[ds.c];save();render();if(D.c[ds.c])toast('✓ '+ALL().find(i=>i.id===ds.c).t);return}
  if(ds.sq){const h=+ds.sq,i=D.sq.indexOf(h);i>=0?D.sq.splice(i,1):D.sq.push(h);save();render();return}
  if(ds.g){const[ex,r]=ds.g.split('|');const n=new Date();D.gtg.push({ex,r,kg:S.settings.gtgKg,t:pad(n.getHours())+':'+pad(n.getMinutes())});save();render();toast('💪 Série '+D.gtg.length);return}
  if(ds.gdel){D.gtg.splice(+ds.gdel,1);save();render();return}
@@ -571,7 +607,7 @@ function renderHist(){
   const bg=p===0?'var(--fill)':`color-mix(in srgb,var(--ring1) ${Math.round(25+p*75)}%,transparent)`;
   h+=`<div style="background:${bg};${p>=.5?'color:#fff;':''}${key(d)===key(today)?'box-shadow:0 0 0 2px var(--blue);':''}" data-k="${key(d)}">${d.getDate()}</div>`}
  $('heat').innerHTML=h;
- let a='';ITEMS.forEach(it=>{const d=new Date(today);
+ let a='';ACTIVE().forEach(it=>{const d=new Date(today);
   if(it.type==='aer'){let w=0;for(let i=0;i<14;i++){if(aerSess(S.days[key(d)]))w++;d.setDate(d.getDate()-1)}a+=row(it.e+' '+it.t,w+'/4 sessões',w>=4);return}
   let n=0,t=0;for(let i=0;i<14;i++){if(applies(it,d)){t++;const D=S.days[key(d)];if(D&&done(it,D))n++}d.setDate(d.getDate()-1)}
   const p=t?n/t:0;a+=row(it.e+' '+it.t,Math.round(p*100)+'%',t&&n?p>=.8:null)});
@@ -610,6 +646,8 @@ function insights(today){const out=[];const avg=a=>a.reduce((s,v)=>s+v,0)/a.leng
  const b=[...S.body].filter(x=>x.w).sort((x,y)=>x.d<y.d?-1:1);
  if(b.length>=2){const last=b[b.length-1];const ref=b.filter(x=>(new Date(last.d)-new Date(x.d))/864e5>=21).pop();
   if(ref){const ch=(last.w-ref.w)/ref.w*100;if(ch<=-2)out.push(['⚖️',`Peso desceu ${Math.abs(ch).toFixed(1)}% desde ${ref.d.split('-').reverse().slice(0,2).join('/')}. Com IMC ~${(last.w/((S.settings.h/100)**2)).toFixed(0)}, confirma proteína e energia suficientes.`])}}
+ {const sets=[];const q2=new Date(today);for(let i=0;i<14;i++){const D=S.days[key(q2)];if(D)D.gtg.forEach(g=>sets.push(g));q2.setDate(q2.getDate()-1)}
+  const sw=sets.filter(g=>/Swing/.test(g.ex)&&g.kg);if(sw.length>=40&&sw.every(g=>g.kg===sw[0].kg))out.push(['🏋️',`${sw.length} séries de swing a ${sw[0].kg} kg em 14 dias. Se a técnica está limpa e longe da falha, experimenta ${sw[0].kg+4} kg em parte das séries.`])}
  if(!out.length)out.push(days.length<3?['📝','Regista pelo menos 3 dias para teres sugestões.']:['✅','Tudo dentro dos alvos nos últimos 7 dias.']);
  return out}
 $('heat').addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;const[y,m,d]=k.split('-').map(Number);view=new Date(y,m-1,d,12);lastPct=null;tab('hoje')});
@@ -660,6 +698,10 @@ function renderCfg(){const s=S.settings;
  $('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;$('cSt').value=s.stepGoal;
  const dd=(arr,id)=>{$(id).innerHTML=[1,2,3,4,5,6,0].map(i=>`<button data-d="${i}" class="${arr.includes(i)?'on':''}">${DAYN[i]}</button>`).join('')};
  dd(s.aerDays,'cAer');dd(s.gtgDays,'cGtg');
+ s.hidden=s.hidden||[];
+ $('cItems').innerHTML=ALL().map(i=>`<div class="tg"><span>${i.e} ${i.t}</span><button class="sw${s.hidden.includes(i.id)?'':' on'}" data-hide="${i.id}" aria-label="${i.t}" aria-pressed="${!s.hidden.includes(i.id)}"></button></div>`).join('');
+ if(!$('nB').options.length)$('nB').innerHTML=BLOCKS.map(b=>`<option value="${b.id}">${b.e} ${b.name}</option>`).join('');
+ $('cCustom').innerHTML=(S.custom||[]).map(c=>`<button class="tag" data-cdel="${c.id}">${c.e} ${c.t} ✕</button>`).join(' ');
  $('protNote').innerHTML=`IMC ${(s.w/((s.h/100)**2)).toFixed(1)} kg/m² · proteína-alvo <b>${protT()} g/dia</b> (1,6 g/kg) ≈ <b>${mealT()} g por refeição</b> ≈ 2 palmas de carne/peixe por refeição.`}
 [['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number]].forEach(([id,k,f])=>{
  $(id).addEventListener('change',e=>{let v=f(e.target.value);if(k==='jobS'||k==='jobE')v=v.slice(0,2)+':00';S.settings[k]=v;save();renderCfg()})});
@@ -668,7 +710,16 @@ $('exp').onclick=()=>{S.lastBackup=Date.now();save();const txt=JSON.stringify(S)
  try{navigator.clipboard.writeText(txt).then(()=>toast('📋 Backup copiado')).catch(()=>{})}catch(e){}
  if($('s-hoje').classList.contains('on'))render()};
 $('imp').onclick=()=>$('impF').click();
-$('impF').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.days)throw 0;S=o;S.settings=Object.assign({},DEF.settings,o.settings);S.body=S.body||[];S.labs=S.labs||[];Object.values(S.days).forEach(norm);save();renderCfg();toast('✓ Backup importado')}catch(err){toast('Ficheiro inválido')}})};
+$('cItems').addEventListener('click',e=>{const id=e.target.dataset.hide;if(!id)return;const h=S.settings.hidden;const i=h.indexOf(id);i>=0?h.splice(i,1):h.push(id);save();renderCfg()});
+$('nAdd').onclick=()=>{const t=$('nT').value.trim();if(!t){toast('Dá um nome ao hábito');return}S.custom.push({id:'c'+Date.now().toString(36),t,e:$('nE').value.trim()||'⭐',b:$('nB').value});$('nT').value='';save();renderCfg();toast('✓ Hábito adicionado')};
+let cdelArm='';$('cCustom').addEventListener('click',e=>{const id=e.target.dataset.cdel;if(!id)return;if(cdelArm!==id){cdelArm=id;toast('Toca outra vez para apagar');setTimeout(()=>cdelArm='',3000);return}S.custom=S.custom.filter(c=>c.id!==id);save();renderCfg()});
+$('csv').onclick=()=>{const items=ALL();const hdr=['data','adesao_pct'].concat(items.map(i=>'item_'+i.id),['agachamentos','gtg_series','gtg_tonelagem_kg','proteina_g','aerobio_mod_min','aerobio_vig_min','passos','deitar','acordar','sono_min','primeira_refeicao','ultima_refeicao']);
+ const rows=Object.keys(S.days).sort().map(k=>{const D=norm(S.days[k]);const[y,m,d]=k.split('-').map(Number);const sc=score(new Date(y,m-1,d,12));
+  return [k,sc?Math.round(sc.p*100):''].concat(items.map(i=>done(i,D)?1:0),[D.sq.length*10,D.gtg.length,gtgTon(D),protDay(D),D.aer.m,D.aer.v,D.steps||'',D.sl.bed,D.sl.wake,sleepDur(D)??'',D.meal.first,D.meal.last])});
+ const txt=[hdr].concat(rows).map(r=>r.join(';')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+txt],{type:'text/csv'}));a.download='ritmo-'+key(new Date())+'.csv';try{a.click()}catch(e){}
+ try{navigator.clipboard.writeText(txt).then(()=>toast('📋 CSV copiado')).catch(()=>{})}catch(e){}};
+$('impF').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.days)throw 0;S=o;S.settings=Object.assign({},DEF.settings,o.settings);S.body=S.body||[];S.labs=S.labs||[];S.custom=S.custom||[];Object.values(S.days).forEach(norm);save();renderCfg();toast('✓ Backup importado')}catch(err){toast('Ficheiro inválido')}})};
 let rstArm=0;$('rst').onclick=()=>{if(Date.now()-rstArm<3000){S=JSON.parse(JSON.stringify(DEF));save();renderCfg();toast('Dados apagados')}else{rstArm=Date.now();toast('Toca outra vez para confirmar')}};
 
 /* ---------- navegação ---------- */
