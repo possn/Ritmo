@@ -177,6 +177,10 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
 .dom .b{height:8px;background:var(--fill);border-radius:8px;overflow:hidden}.dom .b i{display:block;height:100%;border-radius:8px}
 .dom span:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
 .idx-mini{font-size:13px;color:var(--tx2);margin-top:2px}.idx-mini b{font-family:var(--serif);font-size:18px}
+.seg{display:flex;background:var(--fill);border-radius:12px;padding:3px;gap:2px;margin:0 0 12px}
+.seg button{flex:1;border:none;background:none;border-radius:9px;padding:8px 4px;font-size:14px;font-weight:600;color:var(--tx2)}
+.seg button.on{background:var(--card);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.urgb{background:color-mix(in srgb,var(--indigo) 12%,var(--card));border:.5px solid color-mix(in srgb,var(--indigo) 35%,transparent);border-radius:16px;padding:10px 14px;margin:0 0 12px;font-size:14px;color:var(--tx2)}
 </style>
 </head>
 <body>
@@ -219,6 +223,7 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
     <div class="more" id="idxInfo">Mede a <b>adesão</b> dos últimos 7 dias completos (sem contar hoje nem os dias livres), com pesos proporcionais à força da evidência de cada hábito:<br>
     <b>Atividade 30</b> (aeróbio 15 · passos 7 · força 8) · <b>Nutrição 25</b> (proteína 10 · fruta 5 · frutos secos 5 · refeições 5) · <b>Sono 20</b> (duração 12 · regularidade 8) · <b>Sedentarismo 10</b> · <b>Ritmo circadiano 10</b> (luz 5 · fecho da janela 5) · <b>Suplementos 5</b> (creatina 3 · matcha 2).<br><br>
     O que não registas conta como não feito. Se desligares um item, o peso dele é redistribuído pelos restantes.<br><br>
+    Nos <b>dias de urgência</b>, GtG e aeróbio não são esperados e o alvo semanal de aeróbio é reduzido na proporção desses dias; agachamentos (durante o turno), passos e alimentação contam normalmente. A noite de uma urgência que atravessa a noite não entra no sono. O LE8 no Corpo não faz este ajuste: mede a fisiologia real, não a adesão.<br><br>
     <b>Não é um preditor validado de esperança de vida.</b> Serve para te dizer se estás a cumprir. Como referência populacional, adultos com 5 fatores de baixo risco (não fumar, IMC 18,5–24,9, ≥30 min/dia de atividade, álcool moderado, dieta de qualidade) tiveram ~12–14 anos a mais de esperança de vida aos 50 anos, face a quem não tinha nenhum — associação de coorte, não efeito individual.
     <div class="ref">Li Y et al. Circulation 2018;138:345–55.</div>
     Para um score validado, vê o <b>LE8</b> no separador Corpo.</div>
@@ -255,6 +260,8 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
     <p class="note">Mede sempre nas mesmas condições: manhã, em jejum, depois de urinar. Cintura ao nível do umbigo, no fim da expiração. O peso mais recente atualiza o alvo de proteína.</p>
   </div>
   <div class="card"><div class="ct">Análises e marcadores</div>
+    <div class="note" style="margin-bottom:6px">Escolhe rápido ou usa a lista completa:</div>
+    <div class="chips" id="lQuick" style="margin:0 0 10px"></div>
     <div class="inl"><label>Marcador<select id="lK"></select></label><label>Valor<input type="number" id="lV" step="any" inputmode="decimal"></label><label>Data<input type="date" id="lD"></label></div>
     <button class="btn" id="lSave" style="margin-top:12px">Guardar</button>
     <table id="lTab" style="margin-top:8px"></table>
@@ -295,6 +302,8 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
     <div class="frow">Janela alimentar fecha<input type="time" id="cWC"></div>
     <div class="frow">Início do trabalho<input type="time" id="cJS" step="3600"></div>
     <div class="frow">Fim do trabalho<input type="time" id="cJE" step="3600"></div>
+    <div class="frow">Urgência · início<input type="time" id="cSS" step="3600"></div>
+    <div class="frow">Urgência · fim<input type="time" id="cSE" step="3600"></div>
   </div>
   <div class="card">
     <div style="font-weight:600;margin-bottom:8px">Dias de aeróbio</div><div class="days" id="cAer"></div>
@@ -423,8 +432,8 @@ const DAYN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 /* ---------- estado ---------- */
 const KEY='ritmo.v1';
-const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16,hidden:[],nic:100},days:{},body:[],labs:[],custom:[]};
-function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j:0};D.pf=D.pf||{a:[],j:[]};D.aer=D.aer||{m:0,v:0};D.sl=D.sl||{bed:'',wake:''};D.steps=D.steps||0;D.meal=D.meal||{first:'',last:''};D.note=D.note||'';D.off=!!D.off;return D}
+const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16,hidden:[],nic:100,shS:'08:00',shE:'20:00'},days:{},body:[],labs:[],custom:[]};
+function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j:0};D.pf=D.pf||{a:[],j:[]};D.aer=D.aer||{m:0,v:0};D.sl=D.sl||{bed:'',wake:''};D.steps=D.steps||0;D.meal=D.meal||{first:'',last:''};D.note=D.note||'';D.off=!!D.off;D.urg=!!D.urg&&!D.off;return D}
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
  if(!S)S=JSON.parse(JSON.stringify(DEF));
@@ -446,17 +455,23 @@ const protDay=D=>mealG(D,'a')+mealG(D,'j');
 const aerSess=D=>!!(D&&(D.c.aer||(D.aer.m+D.aer.v)>0));
 function sleepDur(D){if(!D||!D.sl.bed||!D.sl.wake)return null;let d=hm(D.sl.wake)-hm(D.sl.bed);if(d<=0)d+=1440;return d}
 function sleepMid(D){const d=sleepDur(D);return d==null?null:(hm(D.sl.bed)+d/2)%1440}
-function workHours(){const r=[];for(let h=hr(S.settings.jobS);h<hr(S.settings.jobE);h++)r.push(h);return r}
+function workHours(D){const r=[];
+ if(D&&D.urg){let a=hr(S.settings.shS),b=hr(S.settings.shE);if(b<=a)b+=24;for(let h=a;h<b&&r.length<24;h++)r.push(h%24);return r}
+ for(let h=hr(S.settings.jobS);h<hr(S.settings.jobE);h++)r.push(h);return r}
+const overnight=()=>hm(S.settings.shE)<=hm(S.settings.shS);
+function postUrg(d){const y=new Date(d);y.setDate(y.getDate()-1);const P=S.days[key(y)];return!!(P&&P.urg&&overnight())}
 function fmt(min,sec){const h=Math.floor(min/60),mm=Math.floor(min%60);if(sec){const s=Math.floor((min*60)%60);return pad(h)+':'+pad(mm)+':'+pad(s)}return h+'h'+(mm?pad(mm):'')}
 
-function applies(it,d){const dw=d.getDay();
- if(it.type==='gtg')return S.settings.gtgDays.includes(dw);
- if(it.type==='aer')return S.settings.aerDays.includes(dw)||aerSess(S.days[key(d)]);
+function applies(it,d){const dw=d.getDay();const Dd=S.days[key(d)];const urg=!!(Dd&&Dd.urg);
+ if(it.type==='gtg')return S.settings.gtgDays.includes(dw)&&!urg;
+ if(it.type==='aer')return (S.settings.aerDays.includes(dw)&&!urg)||aerSess(Dd);
+ if(it.type==='close'&&urg)return!!(Dd&&(Dd.c.fecho||Dd.meal.last));
+ if(it.type==='sleep'&&postUrg(d))return false;
  return true}
 function done(it,D){
  if(D.c[it.id])return true;
  switch(it.type){
-  case 'squat':return D.sq.length>=Math.max(1,Math.ceil(workHours().length*0.8));
+  case 'squat':return D.sq.length>=Math.max(1,Math.ceil(workHours(D).length*0.8));
   case 'gtg':return D.gtg.length>=S.settings.gtgSets;
   case 'sleep':return sleepDur(D)!=null;
   case 'steps':return D.steps>=S.settings.stepGoal;
@@ -466,8 +481,8 @@ function done(it,D){
  }return false}
 function score(d){const D=S.days[key(d)];if(!D||D.off)return null;
  const ap=ACTIVE().filter(i=>applies(i,d));const n=ap.filter(i=>done(i,D)).length;return{n,t:ap.length,p:ap.length?n/ap.length:0}}
-function moveScore(D,d){const parts=[Math.min(1,D.sq.length/Math.max(1,workHours().length)),Math.min(1,D.steps/S.settings.stepGoal)];
- if(S.settings.gtgDays.includes(d.getDay()))parts.push(Math.min(1,D.gtg.length/S.settings.gtgSets));
+function moveScore(D,d){const parts=[Math.min(1,D.sq.length/Math.max(1,workHours(D).length)),Math.min(1,D.steps/S.settings.stepGoal)];
+ if(S.settings.gtgDays.includes(d.getDay())&&!D.urg)parts.push(Math.min(1,D.gtg.length/S.settings.gtgSets));
  if(aerSess(D))parts.push(1);return parts.reduce((a,b)=>a+b,0)/parts.length}
 
 /* ---------- anéis ---------- */
@@ -483,7 +498,10 @@ function render(){
  $('dayTitle').textContent=isToday()?'Hoje':key(view)===key(y)?'Ontem':view.toLocaleDateString('pt-PT',{weekday:'long'}).replace(/^./,c=>c.toUpperCase());
  $('dateLbl').textContent=view.toLocaleDateString('pt-PT',{weekday:'short',day:'numeric',month:'long'});
  $('nextD').style.opacity=isToday()?.3:1;
- let html=nowCard(D);
+ let html=`<div class="seg" role="group" aria-label="Tipo de dia">${[['n','☀️ Normal'],['u','🏥 Urgência'],['o','🏖️ Livre']].map(([m,t])=>`<button data-mode="${m}" class="${(m==='u'&&D.urg)||(m==='o'&&D.off)||(m==='n'&&!D.urg&&!D.off)?'on':''}">${t}</button>`).join('')}</div>`;
+ if(D.urg)html+=`<div class="urgb">🏥 <b>Dia de urgência</b> (${S.settings.shS.slice(0,2)}–${S.settings.shE.slice(0,2)}h). GtG e aeróbio estruturado não são esperados e não descontam. Contam os agachamentos de hora a hora durante o turno, os passos, a caminhada rápida e a alimentação. No Índice, o alvo semanal de aeróbio ajusta-se aos dias sem urgência.</div>`;
+ if(postUrg(view)&&!D.urg&&!D.off)html+=`<div class="urgb">😮‍💨 <b>Pós-urgência</b> — o sono desta noite não conta para a média nem para a regularidade.</div>`;
+ html+=nowCard(D);
  if(D.off)html+=`<div class="offb">🏖️ <b>Dia livre</b> — não conta para a adesão nem quebra a sequência.</div>`;
  BLOCKS.forEach(B=>{
   const f=typeof B.from==='number'?B.from:hr(S.settings[B.from]),to=typeof B.to==='number'?B.to:hr(S.settings[B.to]);
@@ -493,7 +511,7 @@ function render(){
   ACTIVE().filter(i=>i.b===B.id).forEach(it=>html+=itemHTML(it,D));
   html+='</div>'});
  html+=`<div class="sec"><h2>📝 Notas</h2></div><div class="card" style="padding:12px"><textarea data-note placeholder="Como correu o dia? (sono mau, viagem, dor, treino extra…)">${(D.note||'').replace(/</g,'&lt;')}</textarea>
- <div class="foot"><button class="chip" data-off="1">${D.off?'↩︎ Voltar a contar este dia':'🏖️ Marcar como dia livre'}</button><span class="note" style="align-self:center">doença, viagem, banco…</span></div></div>`;
+</div>`;
  $('list').innerHTML=html;
  const nd=Object.keys(S.days).length,since=S.lastBackup?(Date.now()-S.lastBackup)/864e5:1e9;
  $('banner').innerHTML=(nd>=3&&since>=14)?`<div class="banner">💾<div><b>Faz um backup</b><span class="note">${S.lastBackup?'Último há '+Math.floor(since)+' dias':'Ainda não fizeste nenhum'}. Os dados só existem neste iPhone.</span></div><button class="btn" id="bkNow">Backup</button></div>`:'';
@@ -512,10 +530,12 @@ function render(){
 function itemHTML(it,D){
  const dw=view.getDay();const ok=done(it,D);
  const icon=`<div class="ic" style="background:color-mix(in srgb,${it.c} 18%,transparent)">${it.e}</div>`;
+ if(it.type==='gtg'&&D.urg)
+  return `<div class="row">${icon}<div class="rb"><div class="tt">${it.t}</div><div class="rest">🏥 Urgência — sem GtG hoje</div></div></div>`;
  if(it.type==='gtg'&&!S.settings.gtgDays.includes(dw))
   return `<div class="row">${icon}<div class="rb"><div class="tt">${it.t}</div><div class="rest">😌 Dia de descanso total</div></div></div>`;
  let x='';
- if(it.type==='squat'){const cur=isToday()?new Date().getHours():-1;const wh=workHours();
+ if(it.type==='squat'){const cur=isToday()?new Date().getHours():-1;const wh=workHours(D);
   x=`<div class="hours">${wh.map(h=>`<button data-sq="${h}" class="${D.sq.includes(h)?'on':''}${h===cur?' cur':''}">${h}</button>`).join('')}</div>
   <div class="kv"><b>${D.sq.length*10}</b> agachamentos · ${D.sq.length}/${wh.length} horas</div>`}
  if(it.type==='gtg'){
@@ -535,6 +555,7 @@ function itemHTML(it,D){
  if(it.type==='aer'){const w=weekAer(view),wm=weekAerMin(view),pl=S.settings.aerDays.includes(dw);
   x=`<div class="chips"><button class="chip" data-am="m|10">＋10 min moderado</button><button class="chip" data-am="m|20">＋20 moderado</button><button class="chip" data-am="v|5">＋5 vigoroso</button><button class="chip" data-am="v|10">＋10 vigoroso</button>${(D.aer.m+D.aer.v)?'<button class="chip" data-am="x|0">↺</button>':''}</div>
   <div class="kv">Hoje <b>${D.aer.m}</b> mod · <b>${D.aer.v}</b> vig · semana ${w}/2 sessões${pl?' · 📅 planeado hoje':''}</div>
+  ${D.urg?'<div class="note" style="margin-top:4px">🏥 Na urgência, regista só a caminhada rápida (≥100 passos/min ≈ intensidade moderada). Andar devagar entre doentes conta nos passos.</div>':''}
   <div class="kv" style="margin-top:2px"><b>${wm}</b>/150 min equivalentes esta semana</div>
   <div class="prog"><i style="width:${Math.min(100,wm/150*100)}%;background:var(--teal)"></i></div>`}
  if(it.type==='sleep'){const d=sleepDur(D);
@@ -557,8 +578,8 @@ function nowCard(D){if(!isToday())return'';
  if(h<12&&has('sono')&&!sleepDur(D))A.push(['😴 Regista o sono',`data-tog="sono"`]);
  if(h<12&&has('luz')&&!dn('luz'))A.push(['🌤️ Luz + água feito',`data-c="luz"`]);
  if(m<o&&has('matcha')&&!dn('matcha'))A.push(['🍵 Matcha feito',`data-c="matcha"`]);
- const wh=workHours();if(has('agach')&&wh.includes(h)&&!D.sq.includes(h))A.push([`🦵 Agachamentos das ${h}h`,`data-sq="${h}"`]);
- if(has('gtg')&&S.settings.gtgDays.includes(n.getDay())&&wh.includes(h)&&D.gtg.length<S.settings.gtgSets)A.push([`🏋️ Série GtG (${D.gtg.length+1}/${S.settings.gtgSets})`,`data-g="Swing|10"`]);
+ const wh=workHours(D);if(has('agach')&&wh.includes(h)&&!D.sq.includes(h))A.push([`🦵 Agachamentos das ${h}h`,`data-sq="${h}"`]);
+ if(has('gtg')&&!D.urg&&S.settings.gtgDays.includes(n.getDay())&&wh.includes(h)&&D.gtg.length<S.settings.gtgSets)A.push([`🏋️ Série GtG (${D.gtg.length+1}/${S.settings.gtgSets})`,`data-g="Swing|10"`]);
  if(m>=o&&m<c&&!D.meal.first&&!D.meal.last)A.push(['🍽️ Comecei a comer',`data-mt="first"`]);
  if(m>=o&&has('creat')&&!dn('creat'))A.push(['💊 Creatina tomada',`data-c="creat"`]);
  if(m>=c-90&&has('nozes')&&!dn('nozes'))A.push(['🌰 Frutos secos feito',`data-c="nozes"`]);
@@ -620,7 +641,7 @@ $('list').addEventListener('click',e=>{
  if(ds.am){const[t,n]=ds.am.split('|');if(t==='x')D.aer={m:0,v:0};else D.aer[t]+=+n;save();render();return}
  if(ds.slrep){const Y=yday();D.sl={bed:Y.sl.bed,wake:Y.sl.wake};save();render();return}
  if(ds.prep){const Y=yday();D.pf[ds.prep]=[...Y.pf[ds.prep]];save();render();toast('↺ Refeição repetida');return}
- if(ds.off){D.off=!D.off;save();render();toast(D.off?'🏖️ Dia livre':'Dia volta a contar');return}
+ if(ds.mode){D.urg=ds.mode==='u';D.off=ds.mode==='o';save();render();toast(D.urg?'🏥 Dia de urgência':D.off?'🏖️ Dia livre':'☀️ Dia normal');return}
  if(ds.kg){S.settings.gtgKg=+ds.kg;save();render();return}
  if(ds.mt){const n=new Date();D.meal[ds.mt]=isToday()?pad(n.getHours())+':'+pad(n.getMinutes()):(ds.mt==='first'?S.settings.winO:S.settings.winC);save();render();toast(ds.mt==='first'?'🍽️ Janela aberta':'🔒 Jejum iniciado');return}
  if(ds.mtx){D.meal[ds.mtx]='';save();render();return}
@@ -646,17 +667,19 @@ function idxAt(end){
  const ratio=id=>{const it=IT(id);const ap=ds.filter(x=>applies(it,x.d));return ap.length?ap.filter(x=>x.D&&done(it,x.D)).length/ap.length:0};
  const C=[];const add=(dom,id,w,v)=>{if(!hid.includes(id))C.push({dom,w,v:cl(v)})};
  const scale=7/ds.length;
- add('Atividade','aer',15,ds.reduce((s,x)=>s+(x.D?x.D.aer.m+2*x.D.aer.v:0),0)*scale/150);
+ {const nU=ds.filter(x=>!(x.D&&x.D.urg)).length;const mins=ds.reduce((s,x)=>s+(x.D?x.D.aer.m+2*x.D.aer.v:0),0);
+  if(nU>0)add('Atividade','aer',15,mins/(150*nU/7))}
  add('Atividade','passos',7,avg(ds.map(x=>x.D?Math.min(1,x.D.steps/S.settings.stepGoal):0)));
- {const ap=ds.filter(x=>S.settings.gtgDays.includes(x.d.getDay()));add('Atividade','gtg',8,ap.length?ap.filter(x=>x.D&&x.D.gtg.length>=S.settings.gtgSets/2).length/ap.length:0)}
- add('Sono','sono',12,avg(ds.map(x=>{const v=x.D?sleepDur(x.D):null;return v==null?0:sleepPts(v/60)/100})));
- {const mids=ds.map(x=>x.D?sleepMid(x.D):null).filter(v=>v!=null).map(v=>(v-720+1440)%1440);let r=0;
-  if(mids.length>=3){const m=avg(mids);const sd=Math.sqrt(mids.reduce((s,v)=>s+(v-m)**2,0)/(mids.length-1));r=(90-sd)/60*(mids.length/ds.length)}add('Sono','sono',8,r)}
+ {const ap=ds.filter(x=>applies(IT('gtg'),x.d));add('Atividade','gtg',8,ap.length?ap.filter(x=>x.D&&x.D.gtg.length>=S.settings.gtgSets/2).length/ap.length:0)}
+ const dsS=ds.filter(x=>!postUrg(x.d));
+ if(dsS.length)add('Sono','sono',12,avg(dsS.map(x=>{const v=x.D?sleepDur(x.D):null;return v==null?0:sleepPts(v/60)/100})));
+ {const mids=dsS.map(x=>x.D?sleepMid(x.D):null).filter(v=>v!=null).map(v=>(v-720+1440)%1440);let r=0;
+  if(mids.length>=3){const m=avg(mids);const sd=Math.sqrt(mids.reduce((s,v)=>s+(v-m)**2,0)/(mids.length-1));r=(90-sd)/60*(mids.length/dsS.length)}if(dsS.length)add('Sono','sono',8,r)}
  add('Nutrição','almoco',10,avg(ds.map(x=>x.D?Math.min(1,protDay(x.D)/protT()):0)));
  add('Nutrição','fruta',5,ratio('fruta'));add('Nutrição','nozes',5,ratio('nozes'));
  add('Nutrição','jantar',5,(ratio('almoco')+ratio('jantar'))/2);
  add('Ritmo circadiano','luz',5,ratio('luz'));add('Ritmo circadiano','fecho',5,ratio('fecho'));
- add('Sedentarismo','agach',10,avg(ds.map(x=>x.D?Math.min(1,x.D.sq.length/Math.max(1,workHours().length*0.8)):0)));
+ add('Sedentarismo','agach',10,avg(ds.map(x=>x.D?Math.min(1,x.D.sq.length/Math.max(1,workHours(x.D).length*0.8)):0)));
  add('Suplementos','creat',3,ratio('creat'));add('Suplementos','matcha',2,ratio('matcha'));
  const W=C.reduce((s,c)=>s+c.w,0);if(!W)return null;
  const doms={};C.forEach(c=>{(doms[c.dom]=doms[c.dom]||{w:0,s:0});doms[c.dom].w+=c.w;doms[c.dom].s+=c.w*c.v});
@@ -701,7 +724,7 @@ $('le8InfoB').onclick=()=>$('le8Info').classList.toggle('open');
 function renderHist(){
  renderIdx();
  const today=new Date();today.setHours(12,0,0,0);
- const isOff=d=>{const D=S.days[key(d)];return!!(D&&D.off)};
+ const isOff=d=>{const D=S.days[key(d)];return!!(D&&D.off)};const isUrg=d=>{const D=S.days[key(d)];return!!(D&&D.urg)};
  let st=0;const x=new Date(today);const s0=score(x);if(!isOff(x)&&(!s0||s0.p<.8))x.setDate(x.getDate()-1);
  for(let g=0;g<400;g++){if(isOff(x)){x.setDate(x.getDate()-1);continue}const s=score(x);if(s&&s.p>=.8){st++;x.setDate(x.getDate()-1)}else break}
  $('stStreak').textContent=st;
@@ -735,7 +758,7 @@ function renderHist(){
   if(isOff(d)){h+=`<div style="background:color-mix(in srgb,var(--teal) 22%,transparent)" data-k="${key(d)}" title="dia livre">🏖️</div>`;continue}
   const s=score(d);const p=s?s.p:0;
   const bg=p===0?'var(--fill)':`color-mix(in srgb,var(--ring1) ${Math.round(25+p*75)}%,transparent)`;
-  h+=`<div style="background:${bg};${p>=.5?'color:#fff;':''}${key(d)===key(today)?'box-shadow:0 0 0 2px var(--blue);':''}" data-k="${key(d)}">${d.getDate()}</div>`}
+  h+=`<div style="background:${bg};${p>=.5?'color:#fff;':''}${key(d)===key(today)?'box-shadow:0 0 0 2px var(--blue);':''}" data-k="${key(d)}" title="${isUrg(d)?'urgência':''}">${isUrg(d)?'🏥':d.getDate()}</div>`}
  $('heat').innerHTML=h;
  let a='';ACTIVE().forEach(it=>{const d=new Date(today);
   if(it.type==='aer'){let w=0;for(let i=0;i<14;i++){if(aerSess(S.days[key(d)]))w++;d.setDate(d.getDate()-1)}a+=row(it.e+' '+it.t,w+'/4 sessões',w>=4);return}
@@ -768,10 +791,14 @@ function insights(today){const out=[];const avg=a=>a.reduce((s,v)=>s+v,0)/a.leng
  const mids=days.map(sleepMid).filter(x=>x!=null).map(x=>(x-720+1440)%1440);
  if(mids.length>=3){const m=avg(mids);const sd=Math.sqrt(mids.reduce((s,v)=>s+(v-m)**2,0)/(mids.length-1));if(sd>45)out.push(['🕰️',`Sono irregular (±${Math.round(sd)} min). Fixar a hora de acordar, mesmo ao fim de semana, é a alavanca mais simples.`])}
  const du=days.map(sleepDur).filter(x=>x!=null);if(du.length>=3&&avg(du)<420)out.push(['😴',`Sono médio ${fmt(avg(du))}, abaixo das 7 h.`]);
- const wm=weekAerMin(today);const dow=(today.getDay()+6)%7;if(wm<150&&dow>=3)out.push(['🏃',`Aeróbio: ${wm}/150 min equivalentes esta semana — faltam ${150-wm} min moderados (ou ${Math.ceil((150-wm)/2)} vigorosos).`]);
+ const wm=weekAerMin(today);const dow=(today.getDay()+6)%7;
+ const nUrg=(()=>{let n=0;const x=weekStart(today);for(let i=0;i<7;i++){const D=S.days[key(x)];if(D&&D.urg)n++;x.setDate(x.getDate()+1)}return n})();
+ if(wm<150&&dow>=3)out.push(['🏃',`Aeróbio: ${wm}/150 min equivalentes esta semana${nUrg?` (com ${nUrg} urgência${nUrg>1?'s':''})`:''} — faltam ${150-wm} min moderados (ou ${Math.ceil((150-wm)/2)} vigorosos).${nUrg?' Nos dias livres de urgência, uma sessão de 30–40 min resolve boa parte.':''}`]);
+ {const ud=days.filter(D=>D.urg);if(ud.length){const sq=ud.reduce((s,D)=>s+D.sq.length*10,0),st=ud.filter(D=>D.steps).map(D=>D.steps);
+  out.push(['🏥',`${ud.length} urgência${ud.length>1?'s':''} nos últimos 7 dias: ${sq} agachamentos${st.length?` e ${Math.round(st.reduce((a,b)=>a+b,0)/st.length).toLocaleString('pt-PT')} passos/dia`:''} nesses dias. Isto conta.`])}}
  const st=days.map(D=>D.steps).filter(x=>x>0);if(st.length>=3&&avg(st)<S.settings.stepGoal)out.push(['👟',`Passos médios ${Math.round(avg(st)).toLocaleString('pt-PT')}, abaixo do alvo de ${S.settings.stepGoal.toLocaleString('pt-PT')}.`]);
  const late=days.filter(D=>D.meal.last&&hm(D.meal.last)>hm(S.settings.winC)).length;if(late>=2)out.push(['🔒',`Fecho da janela depois das ${S.settings.winC} em ${late} dias.`]);
- const sqd=[];const q=new Date(today);for(let i=0;i<7;i++){if(q.getDay()>0&&q.getDay()<6){const D=S.days[key(q)];sqd.push(D?D.sq.length/Math.max(1,workHours().length):0)}q.setDate(q.getDate()-1)}
+ const sqd=[];const q=new Date(today);for(let i=0;i<7;i++){const D=S.days[key(q)];if((q.getDay()>0&&q.getDay()<6)||(D&&D.urg)){if(!(D&&D.off))sqd.push(D?D.sq.length/Math.max(1,workHours(D).length):0)}q.setDate(q.getDate()-1)}
  if(days.length>=3&&sqd.length&&avg(sqd)<.6)out.push(['🦵',`Agachamentos em ${Math.round(avg(sqd)*100)}% das horas de trabalho. Associa-os a um gatilho fixo (ex.: depois de cada consulta/reunião).`]);
  const b=[...S.body].filter(x=>x.w).sort((x,y)=>x.d<y.d?-1:1);
  if(b.length>=2){const last=b[b.length-1];const ref=b.filter(x=>(new Date(last.d)-new Date(x.d))/864e5>=21).pop();
@@ -797,6 +824,7 @@ function renderCorpo(){
  {const r=le8();const[lab,col]=r.score==null?['Sem dados','var(--mut)']:r.score>=80?['Alto',"var(--green)"]:r.score>=50?['Moderado','var(--orange)']:['Baixo','var(--red)'];
   $('le8g').innerHTML=gauge(r.score,`${lab} · ${r.n}/8 métricas`,col);
   $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'não medido':'sem dados — regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
+ if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
  if(!$('lK').options.length)$('lK').innerHTML=LABS.map(([k,u])=>`<option value="${k}">${k} (${u})</option>`).join('');
  const t=key(new Date());if(!$('bD').value)$('bD').value=t;if(!$('lD').value)$('lD').value=t;
  const b=[...S.body].sort((x,y)=>x.d<y.d?-1:1);
@@ -817,6 +845,7 @@ $('bSave').onclick=()=>{const d=$('bD').value,w=parseFloat($('bW').value),c=pars
  const latest=[...S.body].filter(x=>x.w).sort((x,y)=>x.d<y.d?-1:1).pop();if(latest)S.settings.w=latest.w;
  save();$('bW').value='';$('bC').value='';renderCorpo();toast('⚖️ Medição guardada')};
 $('bList').addEventListener('click',e=>{const k=e.target.dataset.bdel;if(!k)return;S.body=S.body.filter(x=>x.d!==k);save();renderCorpo()});
+$('lQuick').addEventListener('click',e=>{const b=e.target.closest('[data-lq]');if(!b)return;$('lK').value=b.dataset.lq;$('lV').focus();$('lV').placeholder=LU[b.dataset.lq]||''});
 $('lSave').onclick=()=>{const k=$('lK').value,v=parseFloat($('lV').value),d=$('lD').value;if(!k||isNaN(v)||!d){toast('Indica valor e data');return}
  S.labs=S.labs.filter(x=>!(x.k===k&&x.d===d));S.labs.push({k,v,d});save();$('lV').value='';renderCorpo();toast('🧪 Guardado')};
 $('lTab').addEventListener('click',e=>{const k=e.target.dataset.ldel;if(!k)return;const[n,d]=k.split('|');S.labs=S.labs.filter(x=>!(x.k===n&&x.d===d));save();renderCorpo()});
@@ -828,7 +857,7 @@ function renderEv(){$('evList').innerHTML=ITEMS.map(it=>`<div class="card ev"><h
 
 /* ---------- definições ---------- */
 function renderCfg(){const s=S.settings;
- $('cNic').value=String(s.nic??100);$('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;$('cSt').value=s.stepGoal;
+ $('cNic').value=String(s.nic??100);$('cSS').value=s.shS;$('cSE').value=s.shE;$('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;$('cSt').value=s.stepGoal;
  const dd=(arr,id)=>{$(id).innerHTML=[1,2,3,4,5,6,0].map(i=>`<button data-d="${i}" class="${arr.includes(i)?'on':''}">${DAYN[i]}</button>`).join('')};
  dd(s.aerDays,'cAer');dd(s.gtgDays,'cGtg');
  s.hidden=s.hidden||[];
@@ -836,8 +865,8 @@ function renderCfg(){const s=S.settings;
  if(!$('nB').options.length)$('nB').innerHTML=BLOCKS.map(b=>`<option value="${b.id}">${b.e} ${b.name}</option>`).join('');
  $('cCustom').innerHTML=(S.custom||[]).map(c=>`<button class="tag" data-cdel="${c.id}">${c.e} ${c.t} ✕</button>`).join(' ');
  $('protNote').innerHTML=`IMC ${(s.w/((s.h/100)**2)).toFixed(1)} kg/m² · proteína-alvo <b>${protT()} g/dia</b> (1,6 g/kg) ≈ <b>${mealT()} g por refeição</b> ≈ 2 palmas de carne/peixe por refeição.`}
-[['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number],['cNic','nic',Number]].forEach(([id,k,f])=>{
- $(id).addEventListener('change',e=>{let v=f(e.target.value);if(k==='jobS'||k==='jobE')v=v.slice(0,2)+':00';S.settings[k]=v;save();renderCfg()})});
+[['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number],['cNic','nic',Number],['cSS','shS',String],['cSE','shE',String]].forEach(([id,k,f])=>{
+ $(id).addEventListener('change',e=>{let v=f(e.target.value);if(['jobS','jobE','shS','shE'].includes(k))v=v.slice(0,2)+':00';S.settings[k]=v;save();renderCfg()})});
 [['cAer','aerDays'],['cGtg','gtgDays']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const d=e.target.dataset.d;if(d==null)return;const a=S.settings[k],n=+d,i=a.indexOf(n);i>=0?a.splice(i,1):a.push(n);save();renderCfg()}));
 async function giveFile(txt,name,type,label){
  try{const f=new File([txt],name,{type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:label});return true}}catch(e){if(e&&e.name==='AbortError')return false}
@@ -849,9 +878,9 @@ $('imp').onclick=()=>$('impF').click();
 $('cItems').addEventListener('click',e=>{const id=e.target.dataset.hide;if(!id)return;const h=S.settings.hidden;const i=h.indexOf(id);i>=0?h.splice(i,1):h.push(id);save();renderCfg()});
 $('nAdd').onclick=()=>{const t=$('nT').value.trim();if(!t){toast('Dá um nome ao hábito');return}S.custom.push({id:'c'+Date.now().toString(36),t,e:$('nE').value.trim()||'⭐',b:$('nB').value});$('nT').value='';save();renderCfg();toast('✓ Hábito adicionado')};
 let cdelArm='';$('cCustom').addEventListener('click',e=>{const id=e.target.dataset.cdel;if(!id)return;if(cdelArm!==id){cdelArm=id;toast('Toca outra vez para apagar');setTimeout(()=>cdelArm='',3000);return}S.custom=S.custom.filter(c=>c.id!==id);save();renderCfg()});
-$('csv').onclick=()=>{const items=ALL();const hdr=['data','adesao_pct'].concat(items.map(i=>'item_'+i.id),['agachamentos','gtg_series','gtg_tonelagem_kg','proteina_g','aerobio_mod_min','aerobio_vig_min','passos','deitar','acordar','sono_min','primeira_refeicao','ultima_refeicao','dia_livre','notas']);
+$('csv').onclick=()=>{const items=ALL();const hdr=['data','adesao_pct'].concat(items.map(i=>'item_'+i.id),['agachamentos','gtg_series','gtg_tonelagem_kg','proteina_g','aerobio_mod_min','aerobio_vig_min','passos','deitar','acordar','sono_min','primeira_refeicao','ultima_refeicao','tipo_dia','notas']);
  const rows=Object.keys(S.days).sort().map(k=>{const D=norm(S.days[k]);const[y,m,d]=k.split('-').map(Number);const sc=score(new Date(y,m-1,d,12));
-  return [k,sc?Math.round(sc.p*100):''].concat(items.map(i=>done(i,D)?1:0),[D.sq.length*10,D.gtg.length,gtgTon(D),protDay(D),D.aer.m,D.aer.v,D.steps||'',D.sl.bed,D.sl.wake,sleepDur(D)??'',D.meal.first,D.meal.last,D.off?1:0,'"'+(D.note||'').replace(/"/g,'""').replace(/\n/g,' ')+'"'])});
+  return [k,sc?Math.round(sc.p*100):''].concat(items.map(i=>done(i,D)?1:0),[D.sq.length*10,D.gtg.length,gtgTon(D),protDay(D),D.aer.m,D.aer.v,D.steps||'',D.sl.bed,D.sl.wake,sleepDur(D)??'',D.meal.first,D.meal.last,D.off?'livre':D.urg?'urgencia':'normal','"'+(D.note||'').replace(/"/g,'""').replace(/\n/g,' ')+'"'])});
  const txt=[hdr].concat(rows).map(r=>r.join(';')).join('\n');
  giveFile('\ufeff'+txt,'ritmo-'+key(new Date())+'.csv','text/csv','Ritmo CSV')};
 $('impF').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.days)throw 0;S=o;S.settings=Object.assign({},DEF.settings,o.settings);S.body=S.body||[];S.labs=S.labs||[];S.custom=S.custom||[];Object.values(S.days).forEach(norm);save();renderCfg();toast('✓ Backup importado')}catch(err){toast('Ficheiro inválido')}})};
