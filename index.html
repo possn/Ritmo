@@ -245,6 +245,12 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
   <div class="top"><div><div class="eyebrow">Composição e análises</div><h1>Corpo</h1></div></div>
   <div class="card"><div class="ct">Saúde cardiovascular · LE8</div>
     <div class="gauge" id="le8g"></div>
+    <div class="mt" style="margin:4px 0 6px;background:var(--fill);border-radius:14px;padding:10px 12px">
+      <span style="font-size:14px;font-weight:600;flex:1 1 100%">⌚ Minutos de exercício desta semana</span>
+      <span class="note" style="flex:1 1 100%">App Fitness do iPhone → anel verde "Exercício" → total da semana (inclui caminhada rápida).</span>
+      <input type="number" id="wxMin" inputmode="numeric" min="0" step="5" placeholder="min" style="width:110px">
+      <button class="btn" id="wxSave" style="padding:9px 14px">Guardar</button>
+    </div>
     <table id="le8t"></table>
     <button class="info" id="le8InfoB">ⓘ Sobre o LE8</button>
     <div class="more" id="le8Info">Life's Essential 8 (American Heart Association): 8 métricas de 0 a 100; o score é a média. ≥80 alto, 50–79 moderado, &lt;50 baixo. Scores mais altos associam-se a menor incidência de doença cardiovascular e maior esperança de vida em coortes.<br><br>
@@ -898,6 +904,8 @@ $('mepaOpen').onclick=()=>{const last=S.mepa.length?S.mepa[S.mepa.length-1]:null
 $('mepaQ').addEventListener('click',e=>{const i=e.target.dataset.mq;if(i==null)return;mepaDraft[+i]=!mepaDraft[+i];renderMepa()});
 $('mepaSave').onclick=()=>{const n=mepaDraft.filter(Boolean).length;const d=key(new Date());S.mepa=S.mepa.filter(x=>x.d!==d);S.mepa.push({d,a:mepaDraft,n});save();
  mepaDraft=null;$('mepaForm').style.display='none';$('mepaOpen').style.display='';$('mepaOpen').textContent='Responder de novo';renderCorpo();toast(`🥗 MEPA ${n}/16 · ${mepaPts(n)} pontos`)};
+$('wxSave').onclick=()=>{const v=parseInt($('wxMin').value);if(isNaN(v)){toast('Indica os minutos');return}const d=key(new Date());
+ S.labs=S.labs.filter(x=>!(x.k==='Exercício semanal (relógio)'&&x.d===d));S.labs.push({k:'Exercício semanal (relógio)',v,d});save();renderCorpo();toast('⌚ '+v+' min/semana guardados')};
 $('mepaInfoB').onclick=()=>$('mepaInfo').classList.toggle('open');
 
 /* ---------- corpo ---------- */
@@ -912,10 +920,11 @@ function lineChart(pts,color,unit){if(pts.length<2)return'';const W=320,H=110,P=
  <text x="2" y="${Y(y1)+4}" font-size="10" fill="var(--mut)">${y1}</text><text x="2" y="${Y(y0)+4}" font-size="10" fill="var(--mut)">${y0}</text>
  <text x="${P}" y="${H-1}" font-size="10" fill="var(--mut)">${dstr(pts[0].d).slice(0,5)}</text><text x="${W-8}" y="${H-1}" font-size="10" fill="var(--mut)" text-anchor="end">${dstr(pts[pts.length-1].d).slice(0,5)}</text><text x="${W-8}" y="12" font-size="10" fill="var(--mut)" text-anchor="end">${unit}</text></svg>`}
 function renderCorpo(){
+ {const g=S.labs.filter(x=>x.k==='Exercício semanal (relógio)').sort((a,b)=>a.d<b.d?-1:1).pop();$('wxMin').value=g&&(Date.now()-new Date(g.d))/864e5<=8?g.v:''}
  renderMepa();if(S.mepa.length)$('mepaOpen').textContent='Responder de novo';
  {const r=le8();const[lab,col]=r.score==null?['Sem dados','var(--mut)']:r.score>=80?['Alto',"var(--green)"]:r.score>=50?['Moderado','var(--orange)']:['Baixo','var(--red)'];
   $('le8g').innerHTML=gauge(r.score,`${lab} · ${r.n}/8 métricas`,col);
-  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'responde ao questionário MEPA (abaixo)':n.includes('Atividade')?'regista minutos de aeróbio no Hoje, ou o total semanal do relógio em Análises':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
+  $('le8t').innerHTML=r.rows.map(([n,v,p])=>`<tr><td>${n}<div class="note">${v??(n.includes('Dieta')?'responde ao questionário MEPA (abaixo)':n.includes('Atividade')?'escreve os minutos do relógio no campo acima':n.includes('Sono')?'regista o sono no Hoje (item da manhã)':n.includes('não-HDL')?'regista colesterol total e HDL em Análises':'regista em Análises')}</div></td><td style="color:${p==null?'var(--mut)':p>=80?'var(--green)':p>=50?'var(--orange)':'var(--red)'}">${p??'—'}</td></tr>`).join('')}
  if(!$('lQuick').children.length)$('lQuick').innerHTML=[['🫁','VO₂max (relógio)'],['⌚','Exercício semanal (relógio)'],['❤️','FC em repouso'],['🩺','PA sistólica'],['🩺','PA diastólica'],['✊','Força de preensão'],['🩸','HbA1c'],['🧪','Colesterol total'],['🧪','HDL-c'],['🧪','ApoB']].map(([e,k])=>`<button class="chip" data-lq="${k}">${e} ${k}</button>`).join('');
  if(!$('lK').options.length)$('lK').innerHTML=LABS.map(([k,u])=>`<option value="${k}">${k} (${u})</option>`).join('');
  const t=key(new Date());if(!$('bD').value)$('bD').value=t;if(!$('lD').value)$('lD').value=t;
