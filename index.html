@@ -324,6 +324,9 @@ textarea{width:100%;min-height:70px;background:var(--fill);color:var(--tx);borde
   <div class="card">
     <div style="font-weight:600;margin-bottom:8px">Dias de aeróbio</div><div class="days" id="cAer"></div>
     <div style="font-weight:600;margin:16px 0 8px">Dias de GtG kettlebell</div><div class="days" id="cGtg"></div>
+    <div style="font-weight:600;margin:16px 0 8px">Dias com pequeno-almoço</div><div class="days" id="cBf"></div>
+    <div class="frow" style="margin-top:8px">Hora do pequeno-almoço<input type="time" id="cBT"></div>
+    <div class="note">Nesses dias a janela abre ao pequeno-almoço (jejum ≈12 h). Nos outros mantém-se o 16:8.</div>
     <div class="frow" style="margin-top:8px">Séries GtG/dia<input type="number" id="cGS" min="1" max="40"></div>
     <div class="frow">Passos/dia<input type="number" id="cSt" min="1000" max="30000" step="500"></div>
   </div>
@@ -372,7 +375,9 @@ const PORT=[
  {id:'leg',e:'🫘',n:'Leguminosas',u:'½ chávena',g:7},
  {id:'iog',e:'🥛',n:'Skyr',u:'1 copo',g:15},
  {id:'queijo',e:'🧀',n:'Q. fresco',u:'1 unid.',g:10},
- {id:'tofu',e:'🌱',n:'Tofu',u:'1 palma',g:15}
+ {id:'tofu',e:'🌱',n:'Tofu',u:'1 palma',g:15},
+ {id:'aveia',e:'🥣',n:'Aveia/cereais',u:'½ chávena',g:5},
+ {id:'fsec',e:'🌰',n:'Frutos secos',u:'1 mão',g:5}
 ];
 const PMAP=Object.fromEntries(PORT.map(p=>[p.id,p]));
 
@@ -406,6 +411,10 @@ const ITEMS=[
   obj:'Treino neuromuscular frequente sem fadiga central.',g:'B',
   ev:'Treino de força 30–60 min/semana associa-se a ~10–20% menor mortalidade por todas as causas (meta-análise de coortes). O formato GtG (prática distribuída submáxima) tem pouca evidência formal; a alegação de "evitar cortisol elevado" não está demonstrada.',
   refs:['Momma H et al. Br J Sports Med 2022;56:755–63.']},
+ {id:'pqa',b:'manha',e:'🥣',c:'var(--yellow)',type:'meal',m:'p',t:'Pequeno-almoço',d:'Skyr + aveia/cereais integrais + frutos secos (+ frutos vermelhos)',
+  obj:'Acrescentar uma refeição proteica em 3 dias/semana, melhorar a distribuição da proteína e a ingestão de cereais integrais e frutos secos.',g:'B',
+  ev:'Distribuir a proteína por 3 refeições aumentou a síntese proteica muscular de 24 h em ~25% face a concentrá-la ao jantar. O benefício metabólico do jejum 16:8 nos RCTs deveu-se sobretudo à redução calórica; com IMC ~20, 3 janelas mais longas por semana não anulam o protocolo. Cereais integrais e frutos secos associam-se a menor mortalidade em meta-análises de coortes.',
+  refs:['Mamerow MM et al. J Nutr 2014;144:876–80 — distribuição proteica.','Liu D et al. N Engl J Med 2022;386:1495–504 — TRE vs restrição calórica.','Aune D et al. BMJ 2016;353:i2716 — cereais integrais.']},
  {id:'almoco',b:'almoco',e:'🍽️',c:'var(--green)',type:'meal',m:'a',t:'1.ª refeição',d:'Proteína + sopa + azeite virgem extra',
   obj:'Proteína de alta qualidade, fibra/hidratos de baixo IG, ácido oleico (SIRT1).',g:'A',
   ev:'Dieta mediterrânica suplementada com azeite VE reduziu eventos CV major (PREDIMED). A ativação da SIRT1 por ácido oleico via PLIN5 é celular/animal. Proteína: ~1,6 g/kg/dia maximiza ganhos de massa magra com treino de força.',
@@ -448,8 +457,8 @@ const DAYN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 /* ---------- estado ---------- */
 const KEY='ritmo.v1';
-const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16,hidden:[],nic:100,shS:'08:00',shE:'20:00'},days:{},body:[],labs:[],custom:[]};
-function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j:0};D.pf=D.pf||{a:[],j:[]};D.aer=D.aer||{m:0,v:0};D.sl=D.sl||{bed:'',wake:''};D.steps=D.steps||0;D.meal=D.meal||{first:'',last:''};D.note=D.note||'';D.off=!!D.off;D.urg=!!D.urg&&!D.off;return D}
+const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000,gtgKg:16,hidden:[],nic:100,shS:'08:00',shE:'20:00',bfDays:[1,3,5],bfT:'08:00'},days:{},body:[],labs:[],custom:[]};
+function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j:0};D.pf=D.pf||{a:[],j:[]};D.pf.p=D.pf.p||[];D.aer=D.aer||{m:0,v:0};D.sl=D.sl||{bed:'',wake:''};D.steps=D.steps||0;D.meal=D.meal||{first:'',last:''};D.note=D.note||'';D.off=!!D.off;D.urg=!!D.urg&&!D.off;return D}
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
  if(!S)S=JSON.parse(JSON.stringify(DEF));
@@ -465,9 +474,11 @@ const hr=s=>Math.floor(hm(s)/60);
 let view=new Date();view.setHours(12,0,0,0);
 const isToday=()=>key(view)===key(new Date());
 function day(k){return norm(S.days[k]||(S.days[k]={}))}
-const protT=()=>Math.round(S.settings.w*1.6), mealT=()=>Math.round(S.settings.w*0.8);
+const protT=()=>Math.round(S.settings.w*1.6), mealT=m=>m==='p'?Math.round(S.settings.w*0.4):Math.round(S.settings.w*0.8);
+const isBf=d=>(S.settings.bfDays||[]).includes(d.getDay());
+const openMin=d=>isBf(d)?hm(S.settings.bfT):hm(S.settings.winO);
 const mealG=(D,m)=>D.pf[m].reduce((s,id)=>s+(PMAP[id]?PMAP[id].g:0),0)+(D.prot[m]||0);
-const protDay=D=>mealG(D,'a')+mealG(D,'j');
+const protDay=D=>mealG(D,'a')+mealG(D,'j')+(D.pf.p?mealG(D,'p'):0);
 const aerSess=D=>!!(D&&(D.c.aer||(D.aer.m+D.aer.v)>0));
 function sleepDur(D){if(!D||!D.sl.bed||!D.sl.wake)return null;let d=hm(D.sl.wake)-hm(D.sl.bed);if(d<=0)d+=1440;return d}
 function sleepMid(D){const d=sleepDur(D);return d==null?null:(hm(D.sl.bed)+d/2)%1440}
@@ -479,6 +490,8 @@ function postUrg(d){const y=new Date(d);y.setDate(y.getDate()-1);const P=S.days[
 function fmt(min,sec){const h=Math.floor(min/60),mm=Math.floor(min%60);if(sec){const s=Math.floor((min*60)%60);return pad(h)+':'+pad(mm)+':'+pad(s)}return h+'h'+(mm?pad(mm):'')}
 
 function applies(it,d){const dw=d.getDay();const Dd=S.days[key(d)];const urg=!!(Dd&&Dd.urg);
+ if(it.id==='pqa')return isBf(d)||!!(Dd&&Dd.pf&&Dd.pf.p&&Dd.pf.p.length)||!!(Dd&&Dd.c&&Dd.c.pqa);
+ if(it.id==='matcha'&&isBf(d))return!!(Dd&&Dd.c&&Dd.c.matcha);
  if(it.type==='gtg')return S.settings.gtgDays.includes(dw)&&!urg;
  if(it.type==='aer')return (S.settings.aerDays.includes(dw)&&!urg)||aerSess(Dd);
  if(it.type==='close'&&urg)return!!(Dd&&(Dd.c.fecho||Dd.meal.last));
@@ -492,7 +505,7 @@ function done(it,D){
   case 'sleep':return sleepDur(D)!=null;
   case 'steps':return D.steps>=S.settings.stepGoal;
   case 'aer':return aerSess(D);
-  case 'meal':return mealG(D,it.m)>=mealT()*0.9;
+  case 'meal':return mealG(D,it.m)>=mealT(it.m)*0.9;
   case 'close':return !!D.meal.last&&hm(D.meal.last)<=hm(S.settings.winC);
  }return false}
 function score(d){const D=S.days[key(d)];if(!D||D.off)return null;
@@ -546,6 +559,8 @@ function render(){
 function itemHTML(it,D){
  const dw=view.getDay();const ok=done(it,D);
  const icon=`<div class="ic" style="background:color-mix(in srgb,${it.c} 18%,transparent)">${it.e}</div>`;
+ if(it.id==='pqa'&&!applies(it,view))return '';
+ if(it.id==='matcha'&&!applies(it,view))return `<div class="row">${`<div class="ic" style="background:color-mix(in srgb,${it.c} 18%,transparent)">${it.e}</div>`}<div class="rb"><div class="tt">${it.t}</div><div class="rest">🥣 Dia de pequeno-almoço — matcha opcional (já não é em jejum)</div></div></div>`;
  if(it.type==='gtg'&&D.urg)
   return `<div class="row">${icon}<div class="rb"><div class="tt">${it.t}</div><div class="rest">🏥 Urgência — sem GtG hoje</div></div></div>`;
  if(it.type==='gtg'&&!S.settings.gtgDays.includes(dw))
@@ -561,12 +576,13 @@ function itemHTML(it,D){
   <div class="kv"><b>${D.gtg.length}</b>/${S.settings.gtgSets} séries · ${gtgTon(D)} kg de tonelagem</div>
   <div class="prog"><i style="width:${Math.min(100,D.gtg.length/S.settings.gtgSets*100)}%;background:var(--red)"></i></div>`}
  if(it.type==='meal'){const g=mealG(D,it.m);
-  x=`<div class="ptiles">${PORT.map(p=>`<button class="pt" data-pa="${it.m}|${p.id}"><span class="e">${p.e}</span><span class="n">${p.n}</span><span class="u">${p.u}</span><span class="n" style="color:var(--green)">${p.g} g</span></button>`).join('')}</div>
+  const PT=it.m==='p'?['iog','aveia','fsec','ovos','queijo','leg'].map(k=>PMAP[k]):PORT.filter(p=>!['aveia','fsec'].includes(p.id));
+  x=`<div class="ptiles">${PT.map(p=>`<button class="pt" data-pa="${it.m}|${p.id}"><span class="e">${p.e}</span><span class="n">${p.n}</span><span class="u">${p.u}</span><span class="n" style="color:var(--green)">${p.g} g</span></button>`).join('')}</div>
   ${(()=>{const Y=yday();return(!D.pf[it.m].length&&Y&&Y.pf[it.m].length)?`<div class="mt"><button class="chip" data-prep="${it.m}">↺ Repetir ontem · ≈${mealG(Y,it.m)} g</button></div>`:''})()}
   ${D.pf[it.m].length?`<div class="tags">${D.pf[it.m].map((id,i)=>`<button class="tag" data-pd="${it.m}|${i}">${PMAP[id].e} ${PMAP[id].n} ✕</button>`).join('')}</div>`:''}
-  <div class="kv">≈ <b>${g} g</b> de ${mealT()} g nesta refeição · dia ${protDay(D)}/${protT()} g</div>
-  <div class="prog"><i style="width:${Math.min(100,g/mealT()*100)}%;background:var(--green)"></i></div>
-  ${it.m==='a'?mealTime(D,'first','Primeira refeição','Comecei agora'):''}`}
+  <div class="kv">≈ <b>${g} g</b> de ${mealT(it.m)} g nesta refeição · dia ${protDay(D)}/${protT()} g</div>
+  <div class="prog"><i style="width:${Math.min(100,g/mealT(it.m)*100)}%;background:var(--green)"></i></div>
+  ${(it.m==='p'||(it.m==='a'&&!isBf(view)))?mealTime(D,'first','Primeira refeição','Comecei agora'):''}`}
  if(it.type==='close'){x=mealTime(D,'last','Última refeição terminou','Fechei agora')+(D.meal.last&&hm(D.meal.last)>hm(S.settings.winC)?`<div class="warn">Fechou ${fmt(hm(D.meal.last)-hm(S.settings.winC))} depois do previsto.</div>`:'')}
  if(it.type==='aer'){const w=weekAer(view),wm=weekAerMin(view),pl=S.settings.aerDays.includes(dw);
   x=`<div class="chips"><button class="chip" data-am="m|10">＋10 min moderado</button><button class="chip" data-am="m|20">＋20 moderado</button><button class="chip" data-am="v|5">＋5 vigoroso</button><button class="chip" data-am="v|10">＋10 vigoroso</button>${(D.aer.m+D.aer.v)?'<button class="chip" data-am="x|0">↺</button>':''}</div>
@@ -593,10 +609,10 @@ function nowCard(D){if(!isToday())return'';
  const A=[];
  if(h<12&&has('sono')&&!sleepDur(D))A.push(['😴 Regista o sono',`data-tog="sono"`]);
  if(h<12&&has('luz')&&!dn('luz'))A.push(['🌤️ Luz + água feito',`data-c="luz"`]);
- if(m<o&&has('matcha')&&!dn('matcha'))A.push(['🍵 Matcha feito',`data-c="matcha"`]);
+ if(m<openMin(n)&&!isBf(n)&&has('matcha')&&!dn('matcha'))A.push(['🍵 Matcha feito',`data-c="matcha"`]);
  const wh=workHours(D);if(has('agach')&&wh.includes(h)&&!D.sq.includes(h))A.push([`🦵 Agachamentos das ${h}h`,`data-sq="${h}"`]);
  if(has('gtg')&&!D.urg&&S.settings.gtgDays.includes(n.getDay())&&wh.includes(h)&&D.gtg.length<S.settings.gtgSets)A.push([`🏋️ Série GtG (${D.gtg.length+1}/${S.settings.gtgSets})`,`data-g="Swing|10"`]);
- if(m>=o&&m<c&&!D.meal.first&&!D.meal.last)A.push(['🍽️ Comecei a comer',`data-mt="first"`]);
+ {const op=openMin(n);if(m>=op-30&&m<c&&!D.meal.first&&!D.meal.last)A.push([isBf(n)?'🥣 Tomei o pequeno-almoço':'🍽️ Comecei a comer',`data-mt="first"`])}
  if(m>=o&&has('creat')&&!dn('creat'))A.push(['💊 Creatina tomada',`data-c="creat"`]);
  if(m>=c-90&&has('nozes')&&!dn('nozes'))A.push(['🌰 Frutos secos feito',`data-c="nozes"`]);
  if(m>=c-45&&!D.meal.last&&has('fecho'))A.push(['🔒 Fechei a janela',`data-mt="last"`]);
@@ -606,7 +622,7 @@ function nowCard(D){if(!isToday())return'';
 function summary(it,D){switch(it.type){
  case 'squat':return `✓ ${D.sq.length*10} agachamentos`;
  case 'gtg':return `✓ ${D.gtg.length} séries · ${gtgTon(D)} kg`;
- case 'meal':return `✓ ≈${mealG(D,it.m)} g proteína${it.m==='a'&&D.meal.first?' · '+D.meal.first:''}`;
+ case 'meal':return `✓ ≈${mealG(D,it.m)} g proteína${((it.m==='p')||(it.m==='a'&&!isBf(view)))&&D.meal.first?' · '+D.meal.first:''}`;
  case 'sleep':{const d=sleepDur(D);return d!=null?`✓ ${fmt(d)} · ${D.sl.bed}–${D.sl.wake}`:'✓ Feito'}
  case 'steps':return `✓ ${D.steps.toLocaleString('pt-PT')} passos`;
  case 'aer':return `✓ ${D.aer.m} min mod · ${D.aer.v} min vig`;
@@ -625,7 +641,7 @@ function weekAerMin(d){const x=weekStart(d);let n=0;for(let i=0;i<7;i++){const D
 const hhmm=x=>{x=((Math.round(x)%1440)+1440)%1440;return pad(Math.floor(x/60))+':'+pad(x%60)};
 function fasting(){
  const now=new Date();const m=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
- const o=hm(S.settings.winO),c=hm(S.settings.winC);const tgt=1440-(c-o);
+ const o=openMin(now),c=hm(S.settings.winC);const tm=new Date(now);tm.setDate(tm.getDate()+1);
  const Dt=S.days[key(now)];const yd=new Date(now);yd.setDate(yd.getDate()-1);const Dy=S.days[key(yd)];
  let mode,start,real=false;
  if(Dt&&Dt.meal&&Dt.meal.last){mode='fast';start=hm(Dt.meal.last);real=true}
@@ -637,8 +653,8 @@ function fasting(){
  if(mode==='eat'){const rem=c-m;p=(m-start)/Math.max(1,c-start);$('fastCard').className='fast eat';
   if(rem>=0){st='🍽️ Janela aberta · fecha em';t=fmt(rem,true);meta=`Aberta desde ${hhmm(start)}${tag} · fecha às ${S.settings.winC}`}
   else{st='⚠️ Passou do fecho há';t=fmt(-rem,true);meta='Regista "Fechei agora" no jantar'}}
- else{const el=m-start,rem=tgt-el;p=el/tgt;$('fastCard').className='fast on';
-  if(rem>0){st='⏳ Em jejum · faltam';t=fmt(rem,true);meta=`${fmt(el)} de ${fmt(tgt)} · desde ${hhmm(start)}${tag} · abre às ${hhmm(start+tgt)}`}
+ else{const nextOpen=(m<o&&start<0)?o:openMin(tm)+1440;const tgt=Math.max(60,nextOpen-start);const el=m-start,rem=tgt-el;p=el/tgt;$('fastCard').className='fast on';
+  if(rem>0){st='⏳ Em jejum · faltam';t=fmt(rem,true);meta=`${fmt(el)} de ${fmt(tgt)} · desde ${hhmm(start)}${tag} · abre às ${hhmm(start+tgt)}${isBf(nextOpen>=1440?tm:now)?' 🥣':''}`}
   else{st='✅ Jejum cumprido · já';t=fmt(el,true);meta=`Desde ${hhmm(start)}${tag} · alvo ${fmt(tgt)} atingido`}}
  $('fState').textContent=st;$('fTime').textContent=t;$('fMeta').textContent=meta;$('fBar').style.width=Math.min(100,p*100)+'%'}
 
@@ -763,8 +779,11 @@ function renderHist(){
  ind+=row('🏃 Aeróbio equivalente',am+'/150 min',am>=150);
  ind+=prots.length?row('🍗 Proteína média/dia','≈'+Math.round(avg(prots))+'/'+protT()+' g',avg(prots)>=protT()*0.9):row('🍗 Proteína média/dia','—',null);
  const fr=realFasts(today,7);
- ind+=fr.f.length?row('⏳ Jejum real médio',fmt(avg(fr.f))+` (n=${fr.f.length})`,avg(fr.f)>=960*0.95):row('⏳ Jejum real médio','regista as horas',null);
- ind+=fr.w.length?row('🍽️ Janela real média',fmt(avg(fr.w)),avg(fr.w)<=hm(S.settings.winC)-hm(S.settings.winO)+15):'';
+ ind+=fr.f.length?row('⏳ Jejum real (dias 16:8)',fmt(avg(fr.f))+` (n=${fr.f.length})`,avg(fr.f)>=960*0.95):row('⏳ Jejum real (dias 16:8)','regista as horas',null);
+ {const w2=[];const q=new Date(today);for(let i=0;i<7;i++){const D=S.days[key(q)];if(D&&D.meal.first&&D.meal.last&&!isBf(q))w2.push(hm(D.meal.last)-hm(D.meal.first));q.setDate(q.getDate()-1)}
+  ind+=w2.length?row('🍽️ Janela real (dias 16:8)',fmt(avg(w2)),avg(w2)<=hm(S.settings.winC)-hm(S.settings.winO)+15):''}
+ {let nb=0,nbd=0;const q=new Date(today);for(let i=0;i<7;i++){if(isBf(q)){nbd++;const D=S.days[key(q)];if(D&&D.pf.p&&D.pf.p.length)nb++}q.setDate(q.getDate()-1)}
+  if(nbd)ind+=row('🥣 Pequenos-almoços',nb+'/'+nbd,nb>=nbd)}
  let gs=0,ton=0;const q=new Date(today);for(let i=0;i<7;i++){const D=S.days[key(q)];if(D){gs+=D.gtg.length;ton+=gtgTon(D)}q.setDate(q.getDate()-1)}
  ind+=row('🏋️ GtG',gs+' séries · '+ton.toLocaleString('pt-PT')+' kg',null);
  $('ind').innerHTML=ind;
@@ -787,7 +806,7 @@ function renderHist(){
 }
 function realFasts(today,n){const f=[],w=[];const d=new Date(today);
  for(let i=0;i<n;i++){const D=S.days[key(d)];const p=new Date(d);p.setDate(p.getDate()-1);const P=S.days[key(p)];
-  if(D&&D.meal.first&&P&&P.meal.last)f.push(hm(D.meal.first)+1440-hm(P.meal.last));
+  if(D&&D.meal.first&&P&&P.meal.last&&!isBf(d))f.push(hm(D.meal.first)+1440-hm(P.meal.last));
   if(D&&D.meal.first&&D.meal.last)w.push(hm(D.meal.last)-hm(D.meal.first));d.setDate(d.getDate()-1)}
  return{f,w}}
 function series(today,n,fn){const out=[];const d=new Date(today);d.setDate(d.getDate()-(n-1));
@@ -851,7 +870,7 @@ function mepaHints(){const ds=[];const d=new Date();for(let i=0;i<7;i++){const D
  if(ds.length<3)return{};const cnt=id=>ds.reduce((s,D)=>s+D.pf.a.concat(D.pf.j).filter(x=>x===id).length,0);
  const doneN=id=>{const it=ITEMS.find(i=>i.id===id);return ds.filter(D=>done(it,D)).length};
  const h={};h[0]=ds.filter(D=>done(ITEMS.find(i=>i.id==='almoco'),D)&&done(ITEMS.find(i=>i.id==='jantar'),D)).length>=ds.length*0.7;
- h[5]=cnt('carne')<=3;h[6]=cnt('peixe')+cnt('lata')>=1;h[7]=cnt('frango')<=5;h[10]=cnt('leg')+cnt('tofu')>=3;h[13]=doneN('nozes')>=4;return h}
+ h[5]=cnt('carne')<=3;h[6]=cnt('peixe')+cnt('lata')>=1;h[7]=cnt('frango')<=5;h[10]=cnt('leg')+cnt('tofu')>=3;h[13]=ds.filter(D=>done(ITEMS.find(i=>i.id==='nozes'),D)||D.pf.p.includes('fsec')).length>=4;return h}
 let mepaDraft=null;
 function renderMepa(){const last=S.mepa.length?S.mepa[S.mepa.length-1]:null;
  $('mepaSum').innerHTML=last?`Último: <b>${last.n}/16</b> → <b>${mepaPts(last.n)}</b> pontos LE8 · ${dstr(last.d)}${(Date.now()-new Date(last.d))/864e5>90?' <span class="warn">(mais de 90 dias — responde de novo)</span>':''}`:'<span class="note">Ainda não respondeste. Sem isto, o LE8 fica com 7/8 métricas.</span>';
@@ -916,15 +935,15 @@ function renderEv(){$('evList').innerHTML=ITEMS.map(it=>`<div class="card ev"><h
 function renderCfg(){const s=S.settings;
  $('cNic').value=String(s.nic??100);$('cSS').value=s.shS;$('cSE').value=s.shE;$('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;$('cSt').value=s.stepGoal;
  const dd=(arr,id)=>{$(id).innerHTML=[1,2,3,4,5,6,0].map(i=>`<button data-d="${i}" class="${arr.includes(i)?'on':''}">${DAYN[i]}</button>`).join('')};
- dd(s.aerDays,'cAer');dd(s.gtgDays,'cGtg');
+ dd(s.aerDays,'cAer');dd(s.gtgDays,'cGtg');dd(s.bfDays||[],'cBf');$('cBT').value=s.bfT;
  s.hidden=s.hidden||[];
  $('cItems').innerHTML=ALL().map(i=>`<div class="tg"><span>${i.e} ${i.t}</span><button class="sw${s.hidden.includes(i.id)?'':' on'}" data-hide="${i.id}" aria-label="${i.t}" aria-pressed="${!s.hidden.includes(i.id)}"></button></div>`).join('');
  if(!$('nB').options.length)$('nB').innerHTML=BLOCKS.map(b=>`<option value="${b.id}">${b.e} ${b.name}</option>`).join('');
  $('cCustom').innerHTML=(S.custom||[]).map(c=>`<button class="tag" data-cdel="${c.id}">${c.e} ${c.t} ✕</button>`).join(' ');
  $('protNote').innerHTML=`IMC ${(s.w/((s.h/100)**2)).toFixed(1)} kg/m² · proteína-alvo <b>${protT()} g/dia</b> (1,6 g/kg) ≈ <b>${mealT()} g por refeição</b> ≈ 2 palmas de carne/peixe por refeição.`}
-[['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number],['cNic','nic',Number],['cSS','shS',String],['cSE','shE',String]].forEach(([id,k,f])=>{
+[['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number],['cNic','nic',Number],['cSS','shS',String],['cSE','shE',String],['cBT','bfT',String]].forEach(([id,k,f])=>{
  $(id).addEventListener('change',e=>{let v=f(e.target.value);if(['jobS','jobE','shS','shE'].includes(k))v=v.slice(0,2)+':00';S.settings[k]=v;save();renderCfg()})});
-[['cAer','aerDays'],['cGtg','gtgDays']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const d=e.target.dataset.d;if(d==null)return;const a=S.settings[k],n=+d,i=a.indexOf(n);i>=0?a.splice(i,1):a.push(n);save();renderCfg()}));
+[['cAer','aerDays'],['cGtg','gtgDays'],['cBf','bfDays']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const d=e.target.dataset.d;if(d==null)return;const a=S.settings[k],n=+d,i=a.indexOf(n);i>=0?a.splice(i,1):a.push(n);save();renderCfg()}));
 async function giveFile(txt,name,type,label){
  try{const f=new File([txt],name,{type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:label});return true}}catch(e){if(e&&e.name==='AbortError')return false}
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;try{a.click()}catch(e){}
