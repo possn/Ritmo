@@ -125,6 +125,8 @@ input[type=time],input[type=number]{background:var(--card2);color:var(--tx);bord
       <div class="stat"><b id="stAvg">0%</b><span>média 7 dias</span></div>
       <div class="stat"><b id="stAer">0/2</b><span>aeróbio semana</span></div>
     </div></div>
+    <div class="card"><div style="font-weight:600;margin-bottom:6px">Indicadores — últimos 7 dias</div><table id="ind"></table>
+      <p class="note" style="margin:8px 0 0">Regularidade = desvio-padrão do ponto médio do sono; &lt;30 min é estável, &gt;60 min é irregular. Aeróbio equivalente = moderado + 2× vigoroso (OMS).</p></div>
     <div class="card"><div style="font-weight:600;margin-bottom:8px">Últimas 5 semanas</div><div class="heat" id="heat"></div>
       <div class="legend"><span>□ 0%</span><span style="color:#3e6f55">■ &lt;50%</span><span style="color:#5aa47a">■ 50–79%</span><span style="color:#7cc79a">■ ≥80%</span></div></div>
     <div class="card"><div style="font-weight:600;margin-bottom:6px">Adesão por item — 14 dias</div><table id="adh"></table></div>
@@ -163,6 +165,7 @@ input[type=time],input[type=number]{background:var(--card2);color:var(--tx);bord
       <div style="font-weight:600;margin:14px 0 6px">Dias de GtG kettlebell</div>
       <div class="days" id="cGtg"></div>
       <label class="row">Alvo de séries GtG/dia<input type="number" id="cGS" min="1" max="40"></label>
+      <label class="row">Alvo de passos/dia<input type="number" id="cSt" min="1000" max="30000" step="500"></label>
     </div>
     <div class="card">
       <div style="font-weight:600;margin-bottom:8px">Dados (guardados só neste dispositivo)</div>
@@ -195,6 +198,10 @@ const BLOCKS=[
  {id:'jantar',name:'Janela alimentar · jantar',from:18,to:'winC'}
 ];
 const ITEMS=[
+ {id:'sono',b:'manha',type:'sleep',t:'Sono da noite anterior',d:'Hora de deitar e de acordar (do relógio). Alvo: 7–9 h com horários estáveis.',
+  obj:'Duração adequada e, sobretudo, regularidade do sono.',g:'B',
+  ev:'Em ~60 000 adultos com acelerometria (UK Biobank), a regularidade do sono previu a mortalidade por todas as causas melhor do que a duração. A duração tem associação em U com a mortalidade (menor risco ~7–8 h). Dados observacionais — não há RCTs com desfechos duros.',
+  refs:['Windred DP et al. Sleep 2024;47:zsad253 — regularidade vs duração.','Cappuccio FP et al. Sleep 2010;33:585–92 — duração e mortalidade (meta-análise).']},
  {id:'luz',b:'manha',t:'Luz solar matinal + hidratação',d:'5–15 min ao ar livre na 1.ª hora após acordar; 300–500 mL de água.',
   obj:'Ancorar o ritmo circadiano (CLOCK/BMAL1), regular a resposta de cortisol ao despertar.',g:'B',
   ev:'Exposição à luz natural avança e estabiliza a fase circadiana em humanos (melatonina/DLMO). A ligação a NAD+ (via NAMPT controlado pelo CLOCK:BMAL1) é demonstrada em ratinho.',
@@ -229,6 +236,10 @@ const ITEMS=[
   obj:'Biogénese e capacidade mitocondrial.',g:'A',
   ev:'A capacidade cardiorrespiratória é um dos preditores mais fortes de mortalidade, sem teto aparente. Nota: 2 sessões só cumprem as recomendações OMS (150–300 min moderado ou 75–150 min vigoroso/semana) se forem suficientemente longas/intensas.',
   refs:['Mandsager K et al. JAMA Netw Open 2018;1:e183605.','Bull FC et al. Br J Sports Med 2020;54:1451–62 (OMS).']},
+ {id:'passos',b:'tarde',type:'steps',t:'Passos diários',d:'Valor do relógio ao fim do dia.',
+  obj:'Volume de atividade diária de base, além do treino estruturado.',g:'B',
+  ev:'Meta-análise de 15 coortes (~47 000 adultos): mais passos associam-se a menor mortalidade, com plateau ~8 000–10 000/dia abaixo dos 60 anos e ~6 000–8 000 acima. A cadência teve pouco efeito adicional após ajuste para o volume.',
+  refs:['Paluch AE et al. Lancet Public Health 2022;7:e219–28.']},
  {id:'jantar',b:'jantar',t:'Última refeição — proteína + sopa + azeite VE',d:'Antes do fecho da janela.',
   obj:'Densidade nutricional limpa.',g:'A',
   ev:'Mesma base que o almoço. Com apenas 2 refeições, o alvo proteico diário tem de caber aqui — ver Definições.',
@@ -248,11 +259,12 @@ const DAYN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
 /* ---------- estado ---------- */
 const KEY='ritmo.v1';
-const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12},days:{}};
+const DEF={settings:{h:173,w:60,winO:'12:00',winC:'20:00',jobS:'09:00',jobE:'18:00',aerDays:[2,4],gtgDays:[1,2,3,4,5,6],gtgSets:12,stepGoal:8000},days:{}};
+function norm(D){D.c=D.c||{};D.sq=D.sq||[];D.gtg=D.gtg||[];D.prot=D.prot||{a:0,j:0};D.aer=D.aer||{m:0,v:0};D.sl=D.sl||{bed:'',wake:''};D.steps=D.steps||0;return D}
 let S;
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))||null}catch(e){S=null}
  if(!S){S=JSON.parse(JSON.stringify(DEF))}
- S.settings=Object.assign({},DEF.settings,S.settings||{});S.days=S.days||{}}
+ S.settings=Object.assign({},DEF.settings,S.settings||{});S.days=S.days||{};Object.values(S.days).forEach(norm)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
 
@@ -261,18 +273,27 @@ const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const hm=s=>{const[a,b]=s.split(':').map(Number);return a*60+b};
 const hr=s=>Math.floor(hm(s)/60);
 let view=new Date();view.setHours(12,0,0,0);
-function day(k){return S.days[k]||(S.days[k]={c:{},sq:[],gtg:[]})}
+function day(k){return norm(S.days[k]||(S.days[k]={}))}
+const protT=()=>Math.round(S.settings.w*1.6), mealT=()=>Math.round(S.settings.w*0.8);
+const aerSess=D=>!!(D&&(D.c.aer||(D.aer.m+D.aer.v)>0));
+function sleepDur(D){if(!D||!D.sl.bed||!D.sl.wake)return null;let d=hm(D.sl.wake)-hm(D.sl.bed);if(d<=0)d+=1440;return d}
+function sleepMid(D){const d=sleepDur(D);if(d==null)return null;return (hm(D.sl.bed)+d/2)%1440}
 function isToday(){return key(view)===key(new Date())}
 
 /* aplicabilidade e conclusão */
 function applies(it,d){const dw=d.getDay();
  if(it.type==='gtg')return S.settings.gtgDays.includes(dw);
- if(it.type==='aer')return S.settings.aerDays.includes(dw)||!!(S.days[key(d)]&&S.days[key(d)].c.aer);
+ if(it.type==='aer')return S.settings.aerDays.includes(dw)||aerSess(S.days[key(d)]);
  return true}
 function workHours(){const a=hr(S.settings.jobS),b=hr(S.settings.jobE);const r=[];for(let h=a;h<b;h++)r.push(h);return r}
 function done(it,D){
  if(it.type==='squat')return !!D.c[it.id]||D.sq.length>=Math.max(1,Math.ceil(workHours().length*0.8));
  if(it.type==='gtg')return !!D.c[it.id]||D.gtg.length>=S.settings.gtgSets;
+ if(it.type==='sleep')return !!D.c[it.id]||sleepDur(D)!=null;
+ if(it.type==='steps')return !!D.c[it.id]||D.steps>=S.settings.stepGoal;
+ if(it.type==='aer')return aerSess(D);
+ if(it.id==='almoco')return !!D.c[it.id]||D.prot.a>=mealT()*0.9;
+ if(it.id==='jantar')return !!D.c[it.id]||D.prot.j>=mealT()*0.9;
  return !!D.c[it.id]}
 function score(d){const D=S.days[key(d)];if(!D)return null;
  const ap=ITEMS.filter(i=>applies(i,d));const n=ap.filter(i=>done(i,D)).length;
@@ -312,15 +333,30 @@ function itemHTML(it,D){
   <div class="ds" style="margin-top:6px">${D.gtg.length}/${S.settings.gtgSets} séries</div>
   ${D.gtg.length?`<div class="log">${D.gtg.map((g,i)=>`<span data-gdel="${i}" title="Tocar para remover">${g.t} ${g.ex} ${g.r} ✕</span>`).join('')}</div>`:''}
   <div class="bar"><i style="width:${Math.min(100,D.gtg.length/S.settings.gtgSets*100)}%;background:var(--acc2)"></i></div>`}
- if(it.type==='aer'){const w=weekAer(view);
+ if(it.type==='aer'){const w=weekAer(view);const wm=weekAerMin(view);
   const planned=S.settings.aerDays.includes(dw);
-  extra=`<div class="ds" style="margin-top:4px">${w}/2 esta semana ${planned?'· <span class="pill">planeado hoje</span>':''}</div>`}
+  extra=`<div class="btns"><button data-am="m|10">+10 moderado</button><button data-am="m|20">+20 moderado</button><button data-am="v|10">+10 vigoroso</button><button data-am="v|5">+5 vigoroso</button>${(D.aer.m+D.aer.v)?'<button data-am="x|0">Limpar</button>':''}</div>
+  <div class="ds" style="margin-top:6px">Hoje: ${D.aer.m} min moderado · ${D.aer.v} min vigoroso</div>
+  <div class="ds">Semana: ${w}/2 sessões · ${wm}/150 min equivalentes ${planned?'· <span class="pill">planeado hoje</span>':''}</div>
+  <div class="bar"><i style="width:${Math.min(100,wm/150*100)}%;background:var(--blu)"></i></div>`}
+ if(it.type==='sleep'){const d=sleepDur(D);
+  extra=`<div class="btns" style="align-items:center"><label class="ds">Deitar <input type="time" data-sl="bed" value="${D.sl.bed}"></label><label class="ds">Acordar <input type="time" data-sl="wake" value="${D.sl.wake}"></label></div>
+  ${d!=null?`<div class="ds" style="margin-top:6px">Duração: <b style="color:${d<420||d>540?'var(--acc)':'var(--acc2)'}">${fmt(d)}</b></div>`:''}`}
+ if(it.type==='steps'){
+  extra=`<div class="btns" style="align-items:center"><input type="number" inputmode="numeric" min="0" step="100" data-steps placeholder="passos" value="${D.steps||''}"><span class="ds">alvo ${S.settings.stepGoal.toLocaleString('pt-PT')}</span></div>
+  <div class="bar"><i style="width:${Math.min(100,D.steps/S.settings.stepGoal*100)}%;background:var(--acc2)"></i></div>`}
+ if(it.id==='almoco'||it.id==='jantar'){const m=it.id==='almoco'?'a':'j';const v=D.prot[m];
+  extra=`<div class="btns"><button data-pr="${m}|10">+10 g</button><button data-pr="${m}|20">+20 g</button><button data-pr="${m}|30">+30 g</button><button data-pr="${m}|-10">−10 g</button></div>
+  <div class="ds" style="margin-top:6px">Proteína: <b>${v} g</b> / ${mealT()} g nesta refeição · dia ${D.prot.a+D.prot.j}/${protT()} g</div>
+  <div class="bar"><i style="width:${Math.min(100,v/mealT()*100)}%;background:var(--acc2)"></i></div>`}
  return `<div class="item${ok?' done':''}"><button class="chk" data-c="${it.id}" aria-label="Marcar">✓</button>
  <div class="body"><div class="tt">${it.t}</div><div class="ds">${it.d}</div>${extra}
  <button class="info" data-i="${it.id}"><span class="g g${it.g}">${it.g}</span>objetivo e evidência</button>
  <div class="more" id="m-${it.id}"><b>Objetivo:</b> ${it.obj}<br><br>${it.ev}${it.mech?`<br><span class="note">Mecanismo invocado: grau ${it.mech}.</span>`:''}${it.warn?`<div class="ev"><div class="warn">⚠ ${it.warn}</div></div>`:''}</div></div></div>`}
 function weekAer(d){const x=new Date(d);const dw=(x.getDay()+6)%7;x.setDate(x.getDate()-dw);let n=0;
- for(let i=0;i<7;i++){const k=key(x);if(S.days[k]&&S.days[k].c.aer)n++;x.setDate(x.getDate()+1)}return n}
+ for(let i=0;i<7;i++){if(aerSess(S.days[key(x)]))n++;x.setDate(x.getDate()+1)}return n}
+function weekAerMin(d){const x=new Date(d);const dw=(x.getDay()+6)%7;x.setDate(x.getDate()-dw);let n=0;
+ for(let i=0;i<7;i++){const D=S.days[key(x)];if(D)n+=D.aer.m+2*D.aer.v;x.setDate(x.getDate()+1)}return n}
 
 /* ---------- jejum ---------- */
 function fasting(){
@@ -341,8 +377,13 @@ $('list').addEventListener('click',e=>{
  if(b.dataset.sq){const h=+b.dataset.sq;const i=D.sq.indexOf(h);i>=0?D.sq.splice(i,1):D.sq.push(h);save();render();return}
  if(b.dataset.g){const[ex,r]=b.dataset.g.split('|');const n=new Date();D.gtg.push({ex,r,t:pad(n.getHours())+':'+pad(n.getMinutes())});save();render();toast('Série '+D.gtg.length+' registada');return}
  if(b.dataset.gdel){D.gtg.splice(+b.dataset.gdel,1);save();render();return}
+ if(b.dataset.am){const[t,n]=b.dataset.am.split('|');if(t==='x'){D.aer={m:0,v:0}}else D.aer[t]+=+n;save();render();return}
+ if(b.dataset.pr){const[m,n]=b.dataset.pr.split('|');D.prot[m]=Math.max(0,D.prot[m]+(+n));save();render();return}
  if(b.dataset.i){$('m-'+b.dataset.i).classList.toggle('open')}
 });
+$('list').addEventListener('change',e=>{const el=e.target;const D=day(key(view));
+ if(el.dataset.sl){D.sl[el.dataset.sl]=el.value;save();render()}
+ else if('steps' in el.dataset){D.steps=Math.max(0,parseInt(el.value)||0);save();render();if(D.steps>=S.settings.stepGoal)toast('✓ Alvo de passos')}});
 $('prevD').onclick=()=>{view.setDate(view.getDate()-1);render()};
 $('nextD').onclick=()=>{if(isToday())return;view.setDate(view.getDate()+1);render()};
 $('todayD').onclick=()=>{view=new Date();view.setHours(12,0,0,0);render()};
@@ -357,6 +398,21 @@ function renderHist(){
  let sum=0;const y=new Date(today);for(let i=0;i<7;i++){const s=score(y);sum+=s?s.p:0;y.setDate(y.getDate()-1)}
  $('stAvg').textContent=Math.round(sum/7*100)+'%';
  $('stAer').textContent=weekAer(today)+'/2';
+ // indicadores 7 dias
+ const durs=[],mids=[],steps=[],prots=[];let am=0;
+ const z=new Date(today);
+ for(let i=0;i<7;i++){const D=S.days[key(z)];if(D){const d=sleepDur(D);if(d!=null){durs.push(d);mids.push((sleepMid(D)-720+1440)%1440)}
+  if(D.steps)steps.push(D.steps);if(D.prot.a+D.prot.j)prots.push(D.prot.a+D.prot.j);am+=D.aer.m+2*D.aer.v}z.setDate(z.getDate()-1)}
+ const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+ const sd=a=>{const m=avg(a);return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/(a.length-1))};
+ const rowc=(l,v,ok)=>`<tr><td>${l}</td><td style="color:${ok==null?'var(--tx)':ok?'var(--acc2)':'var(--acc)'}">${v}</td></tr>`;
+ let ind='';
+ ind+=durs.length?rowc('Sono médio',fmt(avg(durs))+` (n=${durs.length})`,avg(durs)>=420&&avg(durs)<=540):rowc('Sono médio','—',null);
+ ind+=mids.length>=3?rowc('Regularidade do sono','±'+Math.round(sd(mids))+' min',sd(mids)<=30):rowc('Regularidade do sono','≥3 noites',null);
+ ind+=steps.length?rowc('Passos médios',Math.round(avg(steps)).toLocaleString('pt-PT')+` (n=${steps.length})`,avg(steps)>=S.settings.stepGoal):rowc('Passos médios','—',null);
+ ind+=rowc('Aeróbio equivalente (7 dias)',am+'/150 min',am>=150);
+ ind+=prots.length?rowc('Proteína média/dia',Math.round(avg(prots))+'/'+protT()+' g',avg(prots)>=protT()*0.9):rowc('Proteína média/dia','—',null);
+ $('ind').innerHTML=ind;
  // heat
  let h=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d=>`<div class="lbl">${d}</div>`).join('');
  const start=new Date(today);start.setDate(start.getDate()-((today.getDay()+6)%7)-28);
@@ -369,7 +425,7 @@ function renderHist(){
  // adesão
  let a='';ITEMS.forEach(it=>{let n=0,t=0;const d=new Date(today);
   for(let i=0;i<14;i++){if(applies(it,d)&&!(it.type==='aer')){t++;const D=S.days[key(d)];if(D&&done(it,D))n++}d.setDate(d.getDate()-1)}
-  if(it.type==='aer'){let w=0;const d2=new Date(today);for(let i=0;i<14;i++){const D=S.days[key(d2)];if(D&&D.c.aer)w++;d2.setDate(d2.getDate()-1)}
+  if(it.type==='aer'){let w=0;const d2=new Date(today);for(let i=0;i<14;i++){if(aerSess(S.days[key(d2)]))w++;d2.setDate(d2.getDate()-1)}
    a+=`<tr><td>${it.t}</td><td>${w}/4 sessões</td></tr>`;return}
   a+=`<tr><td>${it.t}</td><td>${t?Math.round(n/t*100):0}%</td></tr>`});
  $('adh').innerHTML=a;
@@ -387,13 +443,13 @@ function renderEv(){$('evList').innerHTML=ITEMS.map(it=>`<div class="card ev"><h
 
 /* ---------- definições ---------- */
 function renderCfg(){const s=S.settings;
- $('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;
+ $('cH').value=s.h;$('cW').value=s.w;$('cWO').value=s.winO;$('cWC').value=s.winC;$('cJS').value=s.jobS;$('cJE').value=s.jobE;$('cGS').value=s.gtgSets;$('cSt').value=s.stepGoal;
  const dd=(arr,id)=>{$(id).innerHTML=[1,2,3,4,5,6,0].map(i=>`<button data-d="${i}" class="${arr.includes(i)?'on':''}">${DAYN[i]}</button>`).join('')};
  dd(s.aerDays,'cAer');dd(s.gtgDays,'cGtg');
  const bmi=s.w/((s.h/100)**2);
  $('protNote').innerHTML=`IMC ${bmi.toFixed(1)} kg/m². Proteína para manter/ganhar massa magra com treino de força: <b>${Math.round(s.w*1.6)} g/dia</b> (1,6 g/kg; intervalo 1,2–2,2) → ≈<b>${Math.round(s.w*0.8)} g por refeição</b> em 2 refeições. Creatina 3–5 g/dia (≈0,05–0,08 g/kg).`}
 function bindCfg(){
- [['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number]].forEach(([id,k,f])=>{
+ [['cH','h',Number],['cW','w',Number],['cWO','winO',String],['cWC','winC',String],['cJS','jobS',String],['cJE','jobE',String],['cGS','gtgSets',Number],['cSt','stepGoal',Number]].forEach(([id,k,f])=>{
   $(id).addEventListener('change',e=>{let v=f(e.target.value);if(k==='jobS'||k==='jobE')v=v.slice(0,2)+':00';S.settings[k]=v;save();renderCfg();render()})});
  [['cAer','aerDays'],['cGtg','gtgDays']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const d=e.target.dataset.d;if(d==null)return;const n=+d;const a=S.settings[k];const i=a.indexOf(n);i>=0?a.splice(i,1):a.push(n);save();renderCfg();render()}));
  $('exp').onclick=()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ritmo-backup-'+key(new Date())+'.json';try{a.click()}catch(e){}
